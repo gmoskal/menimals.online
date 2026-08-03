@@ -234,8 +234,8 @@ Mapa AC:
 Dostarczenie: commit `e9b7382c438f3461260e7efd26f04d84f75cef36` na `main`.
 
 ```text
-$ git ls-remote origin refs/heads/main
-e9b7382c438f3461260e7efd26f04d84f75cef36 refs/heads/main
+$ git merge-base --is-ancestor e9b7382c438f3461260e7efd26f04d84f75cef36 main
+exit 0
 
 $ git rev-parse 'fix/002-panda-przechodzi-przez-sufit^{commit}'
 e9b7382c438f3461260e7efd26f04d84f75cef36
