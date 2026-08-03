@@ -10,10 +10,7 @@ export const siteConfig = {
   appStoreUrl: "https://apps.apple.com/",
   description: "A quiet little game about dropping and merging animals.",
   contactEmail: "contact@menimals.online",
-  operator:
-    "Async.Studio Grzegorz Moskal, NIP 7492012796, Kolejowa 43, 57-220 Ziębice, Polska",
-  operatorEnglish:
-    "Async.Studio Grzegorz Moskal, NIP 7492012796, Kolejowa 43, 57-220 Ziębice, Poland",
+  operator: "Async.Studio",
 } as const;
 
 const sharedLabels = {
@@ -56,7 +53,7 @@ export const siteContent = {
     privacy: {
       title: "Polityka prywatności",
       updated:
-        "Ostatnia aktualizacja: 3 sierpnia 2026, 18:11 CEST (UTC+02:00; Europe/Warsaw).",
+        "Ostatnia aktualizacja: 3 sierpnia 2026, 18:55 CEST (UTC+02:00; Europe/Warsaw).",
       intro:
         "Ta polityka opisuje prywatność w grze Menimals oraz na stronie menimals.online.",
       sections: [
@@ -114,14 +111,14 @@ export const siteContent = {
     privacy: {
       title: "Privacy policy",
       updated:
-        "Last updated: 3 August 2026, 18:11 CEST (UTC+02:00; Europe/Warsaw).",
+        "Last updated: 3 August 2026, 18:55 CEST (UTC+02:00; Europe/Warsaw).",
       intro:
         "This policy explains privacy in the Menimals game and on menimals.online.",
       sections: [
         {
           title: "Controller and contact",
           paragraphs: [
-            `Menimals is operated by ${siteConfig.operatorEnglish}. For privacy questions, email ${siteConfig.contactEmail}.`,
+            `Menimals is operated by ${siteConfig.operator}. For privacy questions, email ${siteConfig.contactEmail}.`,
           ],
         },
         {
