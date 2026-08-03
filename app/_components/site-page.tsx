@@ -3,9 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type CSSProperties } from "react";
+import { PhysicsPanda } from "./physics-panda";
 import { ScribbleAppStoreCta } from "./scribble-app-store-cta";
 import {
-  localeCodes,
   Locale,
   siteConfig,
   siteContent,
@@ -14,7 +14,6 @@ import {
 } from "../_lib/site-content";
 
 const storageKeys = {
-  locale: "menimals.locale",
   theme: "menimals.theme",
 } as const;
 
@@ -53,10 +52,6 @@ type SitePageProps = {
   page: "home" | "privacy";
 };
 
-function isLocale(value: string | null): value is Locale {
-  return localeCodes.some((locale) => locale === value);
-}
-
 function isTheme(value: string | null): value is Theme {
   return themeCodes.some((theme) => theme === value);
 }
@@ -70,13 +65,10 @@ function storedValue(key: (typeof storageKeys)[keyof typeof storageKeys]) {
 }
 
 function readPreferences(): Preferences {
-  const browserLocale = storedValue(storageKeys.locale);
   const browserTheme = storedValue(storageKeys.theme);
-  const locale = isLocale(browserLocale)
-    ? browserLocale
-    : navigator.language.toLowerCase().startsWith("pl")
-      ? "pl"
-      : "en";
+  const locale: Locale = navigator.language.toLowerCase().startsWith("pl")
+    ? "pl"
+    : "en";
   const theme = isTheme(browserTheme)
     ? browserTheme
     : window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -88,6 +80,7 @@ function readPreferences(): Preferences {
 
 export function SitePage(p: SitePageProps) {
   const [preferences, setPreferences] = useState<Preferences | null>(null);
+  const [isPandaSettled, setIsPandaSettled] = useState(false);
   const activePreferences = preferences ?? defaultPreferences;
   const content = siteContent[activePreferences.locale];
 
@@ -102,64 +95,61 @@ export function SitePage(p: SitePageProps) {
     document.documentElement.dataset.theme = preferences.theme;
     document.documentElement.style.colorScheme = preferences.theme;
     try {
-      window.localStorage.setItem(storageKeys.locale, preferences.locale);
       window.localStorage.setItem(storageKeys.theme, preferences.theme);
     } catch {
       // Preferences remain active for this visit if browser storage is unavailable.
     }
   }, [preferences]);
 
-  const selectLocale = (locale: Locale) =>
-    setPreferences({ ...activePreferences, locale });
   const selectTheme = (theme: Theme) =>
     setPreferences({ ...activePreferences, theme });
 
   return (
     <div className={p.page === "home" ? "site site--home" : "site site--privacy"}>
       <header className="controls">
-        <div className="segmented" aria-label={content.themeLabel}>
-          {themeCodes.map((theme) => (
-            <button
-              className="segmented__button"
-              data-active={activePreferences.theme === theme}
-              type="button"
-              aria-pressed={activePreferences.theme === theme}
-              onClick={() => selectTheme(theme)}
-              key={theme}
-            >
-              {content[theme]}
-            </button>
-          ))}
-        </div>
+        <Link className="brand-mark" href="/" aria-label={siteConfig.name}>
+          <Image
+            className="brand-mark__icon"
+            src={siteConfig.appIcon}
+            alt=""
+            width={160}
+            height={160}
+            sizes="80px"
+            priority
+          />
+        </Link>
 
-        <div className="segmented" aria-label={content.languageLabel}>
-          {localeCodes.map((locale) => (
-            <button
-              className="segmented__button"
-              data-active={activePreferences.locale === locale}
-              type="button"
-              aria-pressed={activePreferences.locale === locale}
-              onClick={() => selectLocale(locale)}
-              key={locale}
-            >
-              {locale.toUpperCase()}
-            </button>
-          ))}
+        <div className="control-stack">
+          <div className="segmented" aria-label={content.themeLabel}>
+            {themeCodes.map((theme) => (
+              <button
+                className="segmented__button"
+                data-active={activePreferences.theme === theme}
+                type="button"
+                aria-pressed={activePreferences.theme === theme}
+                onClick={() => selectTheme(theme)}
+                key={theme}
+              >
+                {content[theme]}
+              </button>
+            ))}
+          </div>
+          {p.page === "home" ? (
+            <Link className="privacy-shortcut" href="/privacy">
+              {content.privacyLink}
+            </Link>
+          ) : null}
         </div>
       </header>
 
       {p.page === "home" ? (
-        <>
-          <main className="panda-stage" aria-label={siteConfig.name}>
-            <Image
-              className="panda"
-              src="/panda.png"
-              width={1024}
-              height={1024}
-              sizes="(max-aspect-ratio: 1/1) 90vw, 70vh"
-              alt={content.pandaAlt}
-              priority
-            />
+        <main className="panda-stage" aria-label={siteConfig.name}>
+          <PhysicsPanda
+            alt={content.pandaAlt}
+            isActive={preferences !== null}
+            onSettledChange={setIsPandaSettled}
+          />
+          {isPandaSettled ? (
             <div
               className="app-store-cta-frame"
               style={storyAppStoreScaledFrameStyle}
@@ -181,11 +171,8 @@ export function SitePage(p: SitePageProps) {
                 />
               </div>
             </div>
-          </main>
-          <footer className="footer">
-            <Link href="/privacy">{content.privacyLink}</Link>
-          </footer>
-        </>
+          ) : null}
+        </main>
       ) : (
         <main className="privacy-shell">
           <article className="privacy-document">

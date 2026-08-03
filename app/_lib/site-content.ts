@@ -8,6 +8,7 @@ export const siteConfig = {
   name: "Menimals",
   siteUrl: "https://menimals.online",
   appStoreUrl: "https://apps.apple.com/",
+  appIcon: "/app-icon.png",
   description: "A quiet little game about dropping and merging animals.",
   contactEmail: "contact@menimals.online",
   operator: "Async.Studio",
@@ -28,7 +29,6 @@ type LocaleContent = {
   readonly pandaAlt: string;
   readonly privacyLink: string;
   readonly themeLabel: string;
-  readonly languageLabel: string;
   readonly light: string;
   readonly dark: string;
   readonly back: string;
@@ -46,7 +46,6 @@ export const siteContent = {
     pandaAlt: "Panda Menimals",
     privacyLink: "Polityka prywatności",
     themeLabel: "Motyw",
-    languageLabel: "Język",
     light: sharedLabels.light,
     dark: sharedLabels.dark,
     back: "Wróć do pandy",
@@ -104,7 +103,6 @@ export const siteContent = {
     pandaAlt: "Menimals panda",
     privacyLink: "Privacy policy",
     themeLabel: "Theme",
-    languageLabel: "Language",
     light: sharedLabels.light,
     dark: sharedLabels.dark,
     back: "Back to the panda",

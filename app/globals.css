@@ -16,6 +16,10 @@
   --selection-bg: var(--selection);
   --text-primary: var(--foreground);
   --page-inline: clamp(18px, 4vw, 48px);
+  --brand-icon-radius: 15px;
+  --brand-icon-size: 80px;
+  --panda-floor-inset: max(14px, env(safe-area-inset-bottom));
+  --panda-size: min(23.333svh, 29.333vw, 341.333px);
   --transition: 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -89,6 +93,11 @@ a {
   min-height: 100svh;
 }
 
+.site--home {
+  height: 100svh;
+  overflow: hidden;
+}
+
 .controls {
   position: fixed;
   z-index: 10;
@@ -96,9 +105,43 @@ a {
   right: max(var(--page-inline), env(safe-area-inset-right));
   left: max(var(--page-inline), env(safe-area-inset-left));
   display: flex;
-  justify-content: flex-end;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 10px;
   pointer-events: none;
+}
+
+.brand-mark {
+  display: block;
+  width: var(--brand-icon-size);
+  height: var(--brand-icon-size);
+  border-radius: var(--brand-icon-radius);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.08);
+  pointer-events: auto;
+  transition: transform 180ms ease, box-shadow var(--transition);
+}
+
+.brand-mark:hover {
+  transform: translateY(-2px);
+}
+
+.brand-mark:active {
+  transform: scale(0.97);
+}
+
+.brand-mark__icon {
+  display: block;
+  width: var(--brand-icon-size);
+  height: var(--brand-icon-size);
+  border-radius: var(--brand-icon-radius);
+}
+
+.control-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
 }
 
 .segmented {
@@ -146,7 +189,8 @@ a {
 }
 
 .segmented__button:focus-visible,
-.footer a:focus-visible,
+.brand-mark:focus-visible,
+.privacy-shortcut:focus-visible,
 .back-link:focus-visible,
 .email-link:focus-visible {
   outline: 2px solid currentColor;
@@ -154,38 +198,58 @@ a {
 }
 
 .panda-stage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  position: relative;
+  height: 100svh;
   min-height: 100svh;
-  padding:
-    max(74px, env(safe-area-inset-top))
-    var(--page-inline)
-    max(66px, env(safe-area-inset-bottom));
   overflow: hidden;
 }
 
+.panda-physics-stage {
+  position: absolute;
+  inset: 0;
+}
+
 .panda {
+  position: absolute;
+  top: 0;
+  left: 0;
   display: block;
-  width: min(70svh, 88vw, 1024px);
+  width: var(--panda-size);
   height: auto;
-  max-height: min(70svh, calc(100svh - 250px));
   object-fit: contain;
   filter: drop-shadow(0 24px 28px var(--panda-shadow));
   user-select: none;
   -webkit-user-drag: none;
+  transform: translate3d(38vw, -112%, 0);
+  transform-origin: center;
+  will-change: transform;
+  transition: filter var(--transition);
+}
+
+.panda[data-settled="true"] {
+  will-change: auto;
   transition:
     width var(--transition),
-    max-height var(--transition),
+    transform var(--transition),
     filter var(--transition);
 }
 
+.panda-floor {
+  position: absolute;
+  right: 0;
+  bottom: var(--panda-floor-inset);
+  left: 0;
+  height: 0;
+}
+
 .app-store-cta-frame {
-  position: relative;
-  flex: none;
-  width: 100%;
+  position: absolute;
+  z-index: 2;
+  right: 0;
+  bottom: calc(var(--panda-floor-inset) + var(--panda-size) + 100px);
+  left: 0;
   overflow: visible;
+  animation: app-store-cta-reveal 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .app-store-cta-transform {
@@ -195,28 +259,30 @@ a {
   width: max-content;
 }
 
-.footer {
-  position: fixed;
-  right: var(--page-inline);
-  bottom: max(22px, env(safe-area-inset-bottom));
-  left: var(--page-inline);
-  display: flex;
-  justify-content: center;
+.privacy-shortcut {
+  padding: 3px 7px;
+  color: var(--muted);
   font-size: 13px;
   letter-spacing: 0.01em;
-}
-
-.footer a {
-  padding: 8px 10px;
-  color: var(--muted);
   text-decoration-color: transparent;
   text-underline-offset: 4px;
   transition: color 180ms ease, text-decoration-color 180ms ease;
 }
 
-.footer a:hover {
+.privacy-shortcut:hover {
   color: var(--foreground);
   text-decoration-color: currentColor;
+}
+
+@keyframes app-store-cta-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .privacy-shell {
@@ -291,10 +357,6 @@ a {
 }
 
 @media (max-width: 540px) {
-  .controls {
-    justify-content: space-between;
-  }
-
   .segmented__button {
     min-width: 44px;
     min-height: 32px;
@@ -304,6 +366,10 @@ a {
 
   .privacy-document h1 {
     font-size: clamp(40px, 15vw, 64px);
+  }
+
+  .privacy-shortcut {
+    font-size: 12px;
   }
 }
 
