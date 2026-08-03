@@ -264,6 +264,68 @@ test("react-spring presents the sampled rigid-body trajectory", async () => {
   assert.match(component, /playhead/);
 });
 
+test("a released panda inherits the toss and falls back under gravity", () => {
+  const release = {
+    motion: {
+      angularVelocity: 0,
+      velocityX: 120,
+      velocityY: -900,
+    },
+    pose: {
+      angle: 0,
+      centerX: mobilePandaArena.width / 2,
+      isSettled: false,
+      topY: 500,
+      x: mobilePandaArena.width / 2 - mobilePandaArena.size / 2,
+      y: 500,
+    },
+  };
+  const simulation = new PandaDropSimulation(
+    mobilePandaArena,
+    repeatingRandom(leftwardRandomValues),
+    release,
+  );
+  let minimumY = simulation.pose.y;
+  let startedFalling = false;
+  let simulatedMilliseconds = 0;
+
+  assert.ok(Math.abs(simulation.pose.x - release.pose.x) < 0.001);
+  assert.ok(Math.abs(simulation.pose.y - release.pose.y) < 0.001);
+  assert.ok(simulation.motion.velocityY < -899);
+
+  while (
+    !simulation.isSettled &&
+    simulatedMilliseconds <
+      pandaDropPresentation.reducedMotionSimulationLimitMilliseconds
+  ) {
+    simulation.step(pandaDropPresentation.fixedStepMilliseconds);
+    simulatedMilliseconds += pandaDropPresentation.fixedStepMilliseconds;
+    minimumY = Math.min(minimumY, simulation.pose.y);
+    startedFalling ||= simulation.motion.velocityY > 0;
+  }
+
+  assert.ok(minimumY < release.pose.y - mobilePandaArena.size * 0.75);
+  assert.equal(startedFalling, true);
+  assert.equal(simulation.isSettled, true);
+});
+
+test("the panda accepts pointer toss gestures without making the stage draggable", async () => {
+  const [component, styles] = await Promise.all([
+    readFile(
+      new URL("app/_components/physics-panda.tsx", projectRoot),
+      "utf8",
+    ),
+    readFile(new URL("app/globals.css", projectRoot), "utf8"),
+  ]);
+
+  assert.match(component, /onPointerDown/);
+  assert.match(component, /onPointerMove/);
+  assert.match(component, /setPointerCapture/);
+  assert.match(component, /createPandaDropTrajectory\([^)]*release/);
+  assert.match(styles, /\.panda\s*\{[^}]*touch-action: none;/);
+  assert.doesNotMatch(styles, /\.panda-physics-stage\s*\{[^}]*touch-action: none;/);
+});
+
 test("physics board is an absolute 100vw by 100vh world at the origin", async () => {
   const [component, styles] = await Promise.all([
     readFile(

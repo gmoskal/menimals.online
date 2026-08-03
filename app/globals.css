@@ -225,12 +225,18 @@ a {
   height: auto;
   object-fit: contain;
   filter: drop-shadow(0 24px 28px var(--panda-shadow));
+  cursor: grab;
+  touch-action: none;
   user-select: none;
   -webkit-user-drag: none;
   transform: translate3d(calc(50vw - var(--panda-size) / 2), -100%, 0);
   transform-origin: center;
   will-change: transform;
   transition: filter var(--transition);
+}
+
+.panda[data-dragging="true"] {
+  cursor: grabbing;
 }
 
 .panda[data-settled="true"] {

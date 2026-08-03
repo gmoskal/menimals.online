@@ -95,6 +95,11 @@ export type PandaDropTrajectory = {
   readonly frames: readonly PandaDropTrajectoryFrame[];
 };
 
+export type PandaDropRelease = {
+  readonly motion: PandaDropMotion;
+  readonly pose: PandaDropPose;
+};
+
 function tierRank(tierIndex: number) {
   return Math.min(Math.max(tierIndex, 0), maximumRegularTierIndex + 1);
 }
@@ -162,6 +167,10 @@ function pixelsPerSecondToMatter(velocity: number) {
   return velocity / matterBaseStepsPerSecond;
 }
 
+function radiansPerSecondToMatter(velocity: number) {
+  return velocity / matterBaseStepsPerSecond;
+}
+
 function matterToRadiansPerSecond(velocity: number) {
   return velocity * matterBaseStepsPerSecond;
 }
@@ -211,7 +220,11 @@ export class PandaDropSimulation {
   readonly collisionCenter: Matter.Vector;
   private boundaryContact = false;
 
-  constructor(arena: PandaDropArena, randomUnit: () => number = Math.random) {
+  constructor(
+    arena: PandaDropArena,
+    randomUnit: () => number = Math.random,
+    release?: PandaDropRelease,
+  ) {
     this.arena = arena;
     this.engine = Engine.create({ enableSleeping: true });
     this.engine.gravity.x = 0;
@@ -222,11 +235,16 @@ export class PandaDropSimulation {
 
     const vertices = collisionVertices(arena.size);
     this.collisionCenter = Vertices.centre(vertices);
-    const angle = websiteDropOverrides.initialAngle;
-    const visualCenter = {
-      x: arena.width / 2,
-      y: -arena.size / 2,
-    };
+    const angle = release?.pose.angle ?? websiteDropOverrides.initialAngle;
+    const visualCenter = release
+      ? {
+          x: release.pose.x + arena.size / 2,
+          y: release.pose.y + arena.size / 2,
+        }
+      : {
+          x: arena.width / 2,
+          y: -arena.size / 2,
+        };
     const collisionCenter = rotate(this.collisionCenter, angle);
 
     this.body = Bodies.fromVertices(
@@ -243,18 +261,21 @@ export class PandaDropSimulation {
     );
     Body.setMass(this.body, giantPandaDropPhysics.mass);
     Body.setAngle(this.body, angle);
-    Body.setVelocity(this.body, {
-      x: pixelsPerSecondToMatter(
-        randomSignedMagnitude(
-          giantPandaDropPhysics.horizontalVelocityMagnitude,
-          randomUnit,
-        ),
+    const velocity = release?.motion ?? {
+      angularVelocity: websiteDropOverrides.initialAngularVelocity,
+      velocityX: randomSignedMagnitude(
+        giantPandaDropPhysics.horizontalVelocityMagnitude,
+        randomUnit,
       ),
-      y: pixelsPerSecondToMatter(giantPandaDropPhysics.downwardVelocity),
+      velocityY: giantPandaDropPhysics.downwardVelocity,
+    };
+    Body.setVelocity(this.body, {
+      x: pixelsPerSecondToMatter(velocity.velocityX),
+      y: pixelsPerSecondToMatter(velocity.velocityY),
     });
     Body.setAngularVelocity(
       this.body,
-      websiteDropOverrides.initialAngularVelocity,
+      radiansPerSecondToMatter(velocity.angularVelocity),
     );
 
     const boundaries = [
@@ -370,8 +391,9 @@ function interpolatePose(
 export function createPandaDropTrajectory(
   arena: PandaDropArena,
   randomUnit: () => number = Math.random,
+  release?: PandaDropRelease,
 ): PandaDropTrajectory {
-  const simulation = new PandaDropSimulation(arena, randomUnit);
+  const simulation = new PandaDropSimulation(arena, randomUnit, release);
   const frames: PandaDropTrajectoryFrame[] = [
     { atMilliseconds: 0, pose: simulation.pose },
   ];
