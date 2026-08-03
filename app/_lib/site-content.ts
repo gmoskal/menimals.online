@@ -7,8 +7,9 @@ export type Theme = (typeof themeCodes)[number];
 export const siteConfig = {
   name: "Menimals",
   siteUrl: "https://menimals.online",
+  appStoreUrl: "https://apps.apple.com/",
   description: "A quiet little game about dropping and merging animals.",
-  contactEmail: "rysek@28gor.app",
+  contactEmail: "contact@menimals.online",
   operator:
     "Async.Studio Grzegorz Moskal, NIP 7492012796, Kolejowa 43, 57-220 Ziębice, Polska",
   operatorEnglish:
@@ -26,6 +27,7 @@ type PrivacySection = {
 };
 
 type LocaleContent = {
+  readonly appStoreDownloadLabel: string;
   readonly pandaAlt: string;
   readonly privacyLink: string;
   readonly themeLabel: string;
@@ -43,6 +45,7 @@ type LocaleContent = {
 
 export const siteContent = {
   pl: {
+    appStoreDownloadLabel: "Pobierz Menimals w App Store",
     pandaAlt: "Panda Menimals",
     privacyLink: "Polityka prywatności",
     themeLabel: "Motyw",
@@ -53,7 +56,7 @@ export const siteContent = {
     privacy: {
       title: "Polityka prywatności",
       updated:
-        "Ostatnia aktualizacja: 3 sierpnia 2026, 11:59 CEST (UTC+02:00; Europe/Warsaw).",
+        "Ostatnia aktualizacja: 3 sierpnia 2026, 18:11 CEST (UTC+02:00; Europe/Warsaw).",
       intro:
         "Ta polityka opisuje prywatność w grze Menimals oraz na stronie menimals.online.",
       sections: [
@@ -100,6 +103,7 @@ export const siteContent = {
     },
   },
   en: {
+    appStoreDownloadLabel: "Download Menimals on the App Store",
     pandaAlt: "Menimals panda",
     privacyLink: "Privacy policy",
     themeLabel: "Theme",
@@ -110,7 +114,7 @@ export const siteContent = {
     privacy: {
       title: "Privacy policy",
       updated:
-        "Last updated: 3 August 2026, 11:59 CEST (UTC+02:00; Europe/Warsaw).",
+        "Last updated: 3 August 2026, 18:11 CEST (UTC+02:00; Europe/Warsaw).",
       intro:
         "This policy explains privacy in the Menimals game and on menimals.online.",
       sections: [

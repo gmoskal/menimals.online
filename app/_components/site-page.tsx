@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
+import { ScribbleAppStoreCta } from "./scribble-app-store-cta";
 import {
   localeCodes,
   Locale,
@@ -21,6 +22,27 @@ const defaultPreferences = {
   locale: "pl",
   theme: "light",
 } as const satisfies Preferences;
+
+const storyAppStoreScribble = {
+  height: 125,
+  markerStrokeWidth: 71,
+  mobileScale: 0.72,
+  strokeAxis: "horizontal",
+  strokeCount: 6,
+  width: 470,
+} as const;
+const storyAppStoreBaseScale = 0.6;
+const storyAppStoreScaleMultiplier = 1.5;
+const storyAppStoreScale =
+  storyAppStoreBaseScale * storyAppStoreScaleMultiplier;
+const storyAppStoreScaledFrameStyle = {
+  height: storyAppStoreScribble.height * storyAppStoreScale,
+  width: "100%",
+} satisfies CSSProperties;
+const storyAppStoreTransformStyle = {
+  transform: `translateX(-50%) scale(${storyAppStoreScale})`,
+  transformOrigin: "top center",
+} satisfies CSSProperties;
 
 type Preferences = {
   locale: Locale;
@@ -138,6 +160,27 @@ export function SitePage(p: SitePageProps) {
               alt={content.pandaAlt}
               priority
             />
+            <div
+              className="app-store-cta-frame"
+              style={storyAppStoreScaledFrameStyle}
+            >
+              <div
+                className="app-store-cta-transform"
+                style={storyAppStoreTransformStyle}
+              >
+                <ScribbleAppStoreCta
+                  ariaLabel={content.appStoreDownloadLabel}
+                  height={storyAppStoreScribble.height}
+                  href={siteConfig.appStoreUrl}
+                  isActive={preferences !== null}
+                  markerStrokeWidth={storyAppStoreScribble.markerStrokeWidth}
+                  mobileScale={storyAppStoreScribble.mobileScale}
+                  strokeAxis={storyAppStoreScribble.strokeAxis}
+                  strokeCount={storyAppStoreScribble.strokeCount}
+                  width={storyAppStoreScribble.width}
+                />
+              </div>
+            </div>
           </main>
           <footer className="footer">
             <Link href="/privacy">{content.privacyLink}</Link>

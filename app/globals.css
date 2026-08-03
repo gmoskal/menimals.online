@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
   --background: #f3eadf;
   --background-halo: rgba(255, 255, 255, 0.72);
@@ -9,6 +11,10 @@
   --control-shadow: rgba(56, 39, 27, 0.12);
   --panda-shadow: rgba(53, 36, 24, 0.2);
   --selection: #d6b895;
+  --page-bg: var(--background);
+  --scribble-marker-color: var(--foreground);
+  --selection-bg: var(--selection);
+  --text-primary: var(--foreground);
   --page-inline: clamp(18px, 4vw, 48px);
   --transition: 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -148,9 +154,11 @@ a {
 }
 
 .panda-stage {
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   min-height: 100svh;
-  place-items: center;
   padding:
     max(74px, env(safe-area-inset-top))
     var(--page-inline)
@@ -162,7 +170,7 @@ a {
   display: block;
   width: min(70svh, 88vw, 1024px);
   height: auto;
-  max-height: 70svh;
+  max-height: min(70svh, calc(100svh - 250px));
   object-fit: contain;
   filter: drop-shadow(0 24px 28px var(--panda-shadow));
   user-select: none;
@@ -171,6 +179,20 @@ a {
     width var(--transition),
     max-height var(--transition),
     filter var(--transition);
+}
+
+.app-store-cta-frame {
+  position: relative;
+  flex: none;
+  width: 100%;
+  overflow: visible;
+}
+
+.app-store-cta-transform {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: max-content;
 }
 
 .footer {
