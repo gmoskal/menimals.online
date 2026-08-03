@@ -16,9 +16,10 @@ const mobilePandaArena = { width: 390, height: 844, size: 228 };
 const sharedMenimalArena = { width: 1_000, height: 844, size: 228 };
 const expectedKiwiSizeRatio = 0.75;
 const expectedPenguinSizeRatio = 0.825;
-const menimalSpawnIntervalMilliseconds = 3_000;
+const menimalSpawnIntervalMilliseconds = 2_200;
 const maximumTossVelocity = 1_800;
 const maximumHeavyDropMilliseconds = 1_200;
+const maximumNaturalMenimalFallMilliseconds = 650;
 const minimumVisibleBounceSizeRatio = 0.1;
 const viewportEdgeTolerance = 0.05;
 
@@ -490,7 +491,7 @@ test("panda, kiwi, and penguin collide in one Matter world", () => {
   assert.ok(simulation.penguinMotion.velocityX > 0);
 });
 
-test("three menimals enter from the center three seconds apart", () => {
+test("three menimals enter from the center 2.2 seconds apart", () => {
   const simulation = new PandaDropSimulation(
     sharedMenimalArena,
     repeatingRandom(leftwardRandomValues),
@@ -503,7 +504,7 @@ test("three menimals enter from the center three seconds apart", () => {
   assert.equal(simulation.pose.centerX, sharedMenimalArena.width / 2);
   assert.equal(simulation.kiwiPose.centerX, sharedMenimalArena.width / 2);
   assert.equal(simulation.penguinPose.centerX, sharedMenimalArena.width / 2);
-  while (simulatedMilliseconds < 6_100) {
+  while (simulatedMilliseconds < 4_500) {
     simulation.step(pandaDropPresentation.fixedStepMilliseconds);
     simulatedMilliseconds += pandaDropPresentation.fixedStepMilliseconds;
     const dynamicBodyCount = simulation.engine.world.bodies.filter(
@@ -534,6 +535,21 @@ test("the heavier panda reaches its first rebound before the penguin", () => {
     firstFallDuration(trajectory, "panda") <
       firstFallDuration(trajectory, "penguin"),
   );
+});
+
+test("all three menimals complete their first fall at a natural speed", () => {
+  const trajectory = createMenimalDropTrajectory(
+    mobilePandaArena,
+    () => 0.5,
+  );
+
+  for (const kind of ["panda", "kiwi", "penguin"]) {
+    assert.ok(
+      firstFallDuration(trajectory, kind) <
+        maximumNaturalMenimalFallMilliseconds,
+      `${kind} falls too slowly`,
+    );
+  }
 });
 
 test("an edge toss cannot escape above the side walls", () => {

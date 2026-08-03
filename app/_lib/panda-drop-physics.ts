@@ -8,10 +8,13 @@ const giantPandaTierIndex = 9;
 const maximumRegularTierIndex = 12;
 const matterBaseStepsPerSecond = 60;
 const millisecondsPerSecond = 1_000;
-const menimalSpawnIntervalMilliseconds = 3_000;
+const menimalSpawnIntervalMilliseconds = 2_200;
 const boundaryThickness = 200;
 const offscreenSideBoundaryExtension = 10_000;
-const websiteGravityViewportHeightsPerSecondSquared = 1.9;
+const websiteGravityViewportHeightsPerSecondSquared = {
+  automaticDrop: 7.6,
+  interactiveToss: 1.9,
+} as const;
 const websiteDropOverrides = {
   initialAngle: 0,
   initialAngularVelocity: 0,
@@ -446,8 +449,11 @@ export class PandaDropSimulation {
     this.engine = Engine.create({ enableSleeping: true });
     this.engine.gravity.x = 0;
     this.engine.gravity.y = 1;
+    const gravityViewportHeightsPerSecondSquared = release
+      ? websiteGravityViewportHeightsPerSecondSquared.interactiveToss
+      : websiteGravityViewportHeightsPerSecondSquared.automaticDrop;
     this.engine.gravity.scale =
-      (arena.height * websiteGravityViewportHeightsPerSecondSquared) /
+      (arena.height * gravityViewportHeightsPerSecondSquared) /
       millisecondsPerSecond ** 2;
 
     this.pandaState = createMenimalBodyState({
