@@ -7,6 +7,7 @@ const maximumRegularTierIndex = 12;
 const matterBaseStepsPerSecond = 60;
 const millisecondsPerSecond = 1_000;
 const boundaryThickness = 200;
+const offscreenSideBoundaryExtension = 10_000;
 const websiteGravityViewportHeightsPerSecondSquared = 1.9;
 const websiteDropOverrides = {
   initialAngle: 0,
@@ -278,6 +279,8 @@ export class PandaDropSimulation {
       radiansPerSecondToMatter(velocity.angularVelocity),
     );
 
+    const sideBoundaryHeight =
+      arena.height + offscreenSideBoundaryExtension * 2;
     const boundaries = [
       createBoundary(
         arena.width / 2,
@@ -290,13 +293,13 @@ export class PandaDropSimulation {
         -boundaryThickness / 2,
         arena.height / 2,
         boundaryThickness,
-        arena.height + boundaryThickness * 2,
+        sideBoundaryHeight,
       ),
       createBoundary(
         arena.width + boundaryThickness / 2,
         arena.height / 2,
         boundaryThickness,
-        arena.height + boundaryThickness * 2,
+        sideBoundaryHeight,
       ),
     ];
 

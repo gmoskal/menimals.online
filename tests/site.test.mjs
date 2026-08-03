@@ -309,6 +309,43 @@ test("a released panda inherits the toss and falls back under gravity", () => {
   assert.equal(simulation.isSettled, true);
 });
 
+test("an edge toss cannot escape above the side walls", () => {
+  const release = {
+    motion: {
+      angularVelocity: 0,
+      velocityX: 1_800,
+      velocityY: -1_800,
+    },
+    pose: {
+      angle: 0,
+      centerX: mobilePandaArena.size / 2,
+      isSettled: false,
+      topY: -mobilePandaArena.size,
+      x: 0,
+      y: -mobilePandaArena.size,
+    },
+  };
+  const simulation = new PandaDropSimulation(
+    mobilePandaArena,
+    repeatingRandom(leftwardRandomValues),
+    release,
+  );
+  let simulatedMilliseconds = 0;
+
+  while (
+    !simulation.isSettled &&
+    simulatedMilliseconds <
+      pandaDropPresentation.reducedMotionSimulationLimitMilliseconds
+  ) {
+    simulation.step(pandaDropPresentation.fixedStepMilliseconds);
+    simulatedMilliseconds += pandaDropPresentation.fixedStepMilliseconds;
+  }
+
+  assert.equal(simulation.isSettled, true);
+  assert.ok(simulation.body.bounds.min.x >= -2);
+  assert.ok(simulation.body.bounds.max.x <= mobilePandaArena.width + 2);
+});
+
 test("the panda accepts pointer toss gestures without making the stage draggable", async () => {
   const [component, styles] = await Promise.all([
     readFile(
