@@ -19,7 +19,7 @@
   --brand-icon-radius: 15px;
   --brand-icon-size: 80px;
   --panda-floor-inset: max(14px, env(safe-area-inset-bottom));
-  --panda-size: min(23.333svh, 29.333vw, 341.333px);
+  --panda-size: min(46.666svh, 58.666vw, 682.666px);
   --transition: 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 

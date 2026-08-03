@@ -1,19 +1,16 @@
-const matchGameBaseVelocity = 18;
-const velocitySearchIterations = 36;
+const giantPandaTierIndex = 9;
+const maximumRegularTierIndex = 12;
 
 export const matchGameDropPhysics = {
-  angularDamping: 0.012,
-  angularVelocityBase: 1.2,
-  angularVelocityImpactMultiplier: 0.2,
-  boundaryFriction: 0.48,
   boundaryRestitution: 0.22,
   collisionBodyScale: 0.94,
-  dropVelocityBase: matchGameBaseVelocity,
+  dropVelocityBase: 18,
+  dropVelocityMaximum: 102,
+  dropVelocityRankGrowth: 2.65,
   gravityMagnitude: 13.92,
-  horizontalVelocityBase: matchGameBaseVelocity,
-  horizontalVelocityImpactMultiplier: 4.5,
+  heavyStampRestitution: 0.14,
+  lightStampRestitution: 0.34,
   linearDamping: 0.03,
-  stampFriction: 0.52,
 } as const;
 
 export const pandaDropPresentation = {
@@ -33,9 +30,6 @@ export type PandaDropArena = {
 };
 
 export type PandaDropBody = {
-  angle: number;
-  angularVelocity: number;
-  velocityX: number;
   velocityY: number;
   x: number;
   y: number;
@@ -44,157 +38,66 @@ export type PandaDropBody = {
 export type PandaDropSimulation = {
   readonly arena: PandaDropArena;
   body: PandaDropBody;
+  bounceCount: number;
   readonly gravity: number;
   isSettled: boolean;
 };
-
-function approachZero(value: number, amount: number) {
-  if (Math.abs(value) <= amount) {
-    return 0;
-  }
-
-  return value - Math.sign(value) * amount;
-}
 
 function sceneScale(arena: PandaDropArena) {
   return arena.height / pandaDropPresentation.referenceSceneHeight;
 }
 
-function initialAngularVelocity(velocityX: number, scale: number) {
-  const impact = Math.max(
-    0,
-    (velocityX / scale - matchGameDropPhysics.horizontalVelocityBase) /
-      matchGameDropPhysics.horizontalVelocityImpactMultiplier,
+export function dropVelocityForTier(tierIndex: number) {
+  const rank = Math.min(Math.max(tierIndex, 0), maximumRegularTierIndex + 1);
+
+  return Math.min(
+    matchGameDropPhysics.dropVelocityBase +
+      rank * matchGameDropPhysics.dropVelocityRankGrowth,
+    matchGameDropPhysics.dropVelocityMaximum,
   );
+}
+
+export function restitutionForTier(tierIndex: number) {
+  const rank = Math.min(Math.max(tierIndex, 0), maximumRegularTierIndex + 1);
+  const maximumRank = maximumRegularTierIndex + 1;
+  const weightProgress = Math.min(Math.max(rank / maximumRank, 0), 1);
 
   return (
-    matchGameDropPhysics.angularVelocityBase +
-    impact * matchGameDropPhysics.angularVelocityImpactMultiplier
+    matchGameDropPhysics.lightStampRestitution -
+    (matchGameDropPhysics.lightStampRestitution -
+      matchGameDropPhysics.heavyStampRestitution) *
+      Math.sqrt(weightProgress)
   );
 }
 
-function simulateHorizontalTravel(
+export const giantPandaDropPhysics = {
+  initialVelocity: dropVelocityForTier(giantPandaTierIndex),
+  restitution: Math.max(
+    matchGameDropPhysics.boundaryRestitution,
+    restitutionForTier(giantPandaTierIndex),
+  ),
+} as const;
+
+export function createPandaDropSimulation(
   arena: PandaDropArena,
-  velocityX: number,
-) {
-  const simulation = runSimulation(createSimulation(arena, 0, velocityX));
-
-  return simulation.body.x;
-}
-
-function runSimulation(simulation: PandaDropSimulation) {
-  const maximumSteps = Math.ceil(
-    pandaDropPresentation.maximumSimulationSeconds /
-      pandaDropPresentation.fixedStepSeconds,
-  );
-
-  for (let step = 0; step < maximumSteps; step += 1) {
-    advancePandaDropSimulation(
-      simulation,
-      pandaDropPresentation.fixedStepSeconds,
-    );
-    if (simulation.isSettled) {
-      break;
-    }
-  }
-
-  return simulation;
-}
-
-function solveInitialVelocity(arena: PandaDropArena, travel: number) {
-  const scale = sceneScale(arena);
-  let lowerVelocity = 0;
-  let upperVelocity = 220 * scale;
-
-  for (let attempt = 0; attempt < velocitySearchIterations; attempt += 1) {
-    const velocity = (lowerVelocity + upperVelocity) / 2;
-    if (simulateHorizontalTravel(arena, velocity) < travel) {
-      lowerVelocity = velocity;
-    } else {
-      upperVelocity = velocity;
-    }
-  }
-
-  return (lowerVelocity + upperVelocity) / 2;
-}
-
-function solveInitialAngularVelocity(
-  arena: PandaDropArena,
-  velocityX: number,
-) {
-  const scale = sceneScale(arena);
-  const gameAngularVelocity = initialAngularVelocity(velocityX, scale);
-  const gameFinalAngle = runSimulation(
-    createSimulation(arena, 0, velocityX, gameAngularVelocity),
-  ).body.angle;
-  const fullTurn = Math.PI * 2;
-  const targetAngle = Math.max(
-    fullTurn,
-    Math.round(gameFinalAngle / fullTurn) * fullTurn,
-  );
-  let lowerVelocity = 0;
-  let upperVelocity = 12;
-
-  for (let attempt = 0; attempt < velocitySearchIterations; attempt += 1) {
-    const angularVelocity = (lowerVelocity + upperVelocity) / 2;
-    const finalAngle = runSimulation(
-      createSimulation(arena, 0, velocityX, angularVelocity),
-    ).body.angle;
-    if (finalAngle < targetAngle) {
-      lowerVelocity = angularVelocity;
-    } else {
-      upperVelocity = angularVelocity;
-    }
-  }
-
-  return (lowerVelocity + upperVelocity) / 2;
-}
-
-function createSimulation(
-  arena: PandaDropArena,
-  startX: number,
-  velocityX: number,
-  angularVelocity = initialAngularVelocity(velocityX, sceneScale(arena)),
 ): PandaDropSimulation {
   const scale = sceneScale(arena);
 
   return {
     arena,
     body: {
-      angle: 0,
-      angularVelocity,
-      velocityX,
-      velocityY: matchGameDropPhysics.dropVelocityBase * scale,
-      x: startX,
+      velocityY: giantPandaDropPhysics.initialVelocity * scale,
+      x: (arena.width - arena.size) / 2,
       y: -arena.size * 1.12,
     },
+    bounceCount: 0,
     gravity: matchGameDropPhysics.gravityMagnitude * scale,
     isSettled: false,
   };
 }
 
-export function createPandaDropSimulation(
-  arena: PandaDropArena,
-): PandaDropSimulation {
-  const targetX = (arena.width - arena.size) / 2;
-  const leftInset = Math.max(14, arena.width * 0.04);
-  const maximumTravel = Math.max(0, targetX - leftInset);
-  const desiredTravel = Math.min(
-    maximumTravel,
-    Math.max(arena.size * 1.08, arena.width * 0.18),
-  );
-  const startX = targetX - desiredTravel;
-  const velocityX = solveInitialVelocity(arena, desiredTravel);
-  const angularVelocity = solveInitialAngularVelocity(arena, velocityX);
-
-  return createSimulation(arena, startX, velocityX, angularVelocity);
-}
-
 export function settledPandaDropBody(arena: PandaDropArena): PandaDropBody {
   return {
-    angle: 0,
-    angularVelocity: 0,
-    velocityX: 0,
     velocityY: 0,
     x: (arena.width - arena.size) / 2,
     y: arena.floorY,
@@ -214,47 +117,23 @@ export function advancePandaDropSimulation(
   const linearDamping = Math.exp(
     -matchGameDropPhysics.linearDamping * seconds,
   );
-  const angularDamping = Math.exp(
-    -matchGameDropPhysics.angularDamping * seconds,
-  );
 
   body.velocityY += simulation.gravity * seconds;
-  body.velocityX *= linearDamping;
   body.velocityY *= linearDamping;
-  body.angularVelocity *= angularDamping;
-  body.x += body.velocityX * seconds;
   body.y += body.velocityY * seconds;
 
-  let isOnFloor = false;
-  if (body.y >= simulation.arena.floorY) {
-    body.y = simulation.arena.floorY;
-    const minimumBounceSpeed =
-      pandaDropPresentation.minimumBounceSpeed * scale;
-
-    if (body.velocityY > minimumBounceSpeed) {
-      body.velocityY =
-        -body.velocityY * matchGameDropPhysics.boundaryRestitution;
-    } else {
-      body.velocityY = 0;
-      isOnFloor = true;
-    }
+  if (body.y < simulation.arena.floorY) {
+    return;
   }
 
-  if (isOnFloor) {
-    const contactFriction =
-      (matchGameDropPhysics.stampFriction +
-        matchGameDropPhysics.boundaryFriction) /
-      2;
-    body.velocityX = approachZero(
-      body.velocityX,
-      contactFriction * simulation.gravity * seconds,
-    );
-    const collisionRadius =
-      (simulation.arena.size * matchGameDropPhysics.collisionBodyScale) / 2;
-    body.angularVelocity = body.velocityX / collisionRadius;
+  body.y = simulation.arena.floorY;
+  const minimumBounceSpeed = pandaDropPresentation.minimumBounceSpeed * scale;
+  if (simulation.bounceCount === 0 && body.velocityY > minimumBounceSpeed) {
+    body.velocityY = -body.velocityY * giantPandaDropPhysics.restitution;
+    simulation.bounceCount += 1;
+    return;
   }
 
-  body.angle += body.angularVelocity * seconds;
-  simulation.isSettled =
-    isOnFloor && body.velocityX === 0 && body.angularVelocity === 0;
+  body.velocityY = 0;
+  simulation.isSettled = true;
 }

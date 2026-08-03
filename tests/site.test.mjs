@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   advancePandaDropSimulation,
   createPandaDropSimulation,
+  giantPandaDropPhysics,
   matchGameDropPhysics,
   pandaDropPresentation,
 } from "../app/_lib/panda-drop-physics.ts";
@@ -31,26 +32,25 @@ test("home reveals the App Store scribble after the physical panda settles", asy
   assert.doesNotMatch(component, /<footer/);
 });
 
-test("panda uses the production game physics and settles centered after one bounce", () => {
+test("panda ports the vertical game drop and settles centered after one bounce", () => {
   assert.deepEqual(matchGameDropPhysics, {
-    angularDamping: 0.012,
-    angularVelocityBase: 1.2,
-    angularVelocityImpactMultiplier: 0.2,
-    boundaryFriction: 0.48,
     boundaryRestitution: 0.22,
     collisionBodyScale: 0.94,
     dropVelocityBase: 18,
+    dropVelocityMaximum: 102,
+    dropVelocityRankGrowth: 2.65,
     gravityMagnitude: 13.92,
-    horizontalVelocityBase: 18,
-    horizontalVelocityImpactMultiplier: 4.5,
+    heavyStampRestitution: 0.14,
+    lightStampRestitution: 0.34,
     linearDamping: 0.03,
-    stampFriction: 0.52,
   });
+  assert.ok(Math.abs(giantPandaDropPhysics.initialVelocity - 41.85) < 0.0001);
+  assert.equal(giantPandaDropPhysics.restitution, 0.22);
 
   const viewports = [
-    { width: 1440, height: 900, size: 210 },
-    { width: 390, height: 844, size: 114 },
-    { width: 320, height: 568, size: 94 },
+    { width: 1440, height: 900, size: 420 },
+    { width: 390, height: 844, size: 228 },
+    { width: 320, height: 568, size: 188 },
   ];
 
   for (const viewport of viewports) {
@@ -60,6 +60,9 @@ test("panda uses the production game physics and settles centered after one boun
     };
     const simulation = createPandaDropSimulation(arena);
     const initialY = simulation.body.y;
+    const initialVelocityY = simulation.body.velocityY;
+    const targetX = (viewport.width - viewport.size) / 2;
+    let acceleratedVelocityY = initialVelocityY;
     let bounceCount = 0;
     let simulatedSeconds = 0;
 
@@ -72,24 +75,37 @@ test("panda uses the production game physics and settles centered after one boun
         simulation,
         pandaDropPresentation.fixedStepSeconds,
       );
+      if (simulatedSeconds === 0) {
+        acceleratedVelocityY = simulation.body.velocityY;
+      }
       if (velocityY > 0 && simulation.body.velocityY < 0) {
         bounceCount += 1;
       }
+      assert.equal(simulation.body.x, targetX);
       simulatedSeconds += pandaDropPresentation.fixedStepSeconds;
     }
 
     assert.ok(initialY < -viewport.size);
+    assert.ok(acceleratedVelocityY > initialVelocityY);
     assert.equal(bounceCount, 1);
     assert.equal(simulation.isSettled, true);
-    assert.ok(
-      Math.abs(simulation.body.x - (viewport.width - viewport.size) / 2) <
-        0.001,
-    );
+    assert.equal(simulation.body.x, targetX);
     assert.equal(simulation.body.y, arena.floorY);
-    assert.ok(
-      Math.abs(simulation.body.angle / (Math.PI * 2) - 3) < 0.001,
-    );
   }
+});
+
+test("panda is twice the previous size and never rotates", async () => {
+  const [component, styles] = await Promise.all([
+    readFile(
+      new URL("app/_components/physics-panda.tsx", projectRoot),
+      "utf8",
+    ),
+    readFile(new URL("app/globals.css", projectRoot), "utf8"),
+  ]);
+
+  assert.match(styles, /46\.666svh/);
+  assert.match(styles, /58\.666vw/);
+  assert.doesNotMatch(component, /rotate\(/);
 });
 
 test("privacy policy is complete in Polish and English", async () => {

@@ -19,7 +19,7 @@ type PhysicsPandaProps = {
 };
 
 function applyBody(element: HTMLImageElement, body: PandaDropBody) {
-  element.style.transform = `translate3d(${body.x}px, ${body.y}px, 0) rotate(${body.angle}rad)`;
+  element.style.transform = `translate3d(${body.x}px, ${body.y}px, 0)`;
 }
 
 export function PhysicsPanda(p: PhysicsPandaProps) {
@@ -157,7 +157,7 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
         src="/panda.png"
         width={1024}
         height={1024}
-        sizes="(max-aspect-ratio: 1/1) 29vw, 23vh"
+        sizes="(max-aspect-ratio: 1/1) 58vw, 46vh"
         alt={p.alt}
         priority
       />
