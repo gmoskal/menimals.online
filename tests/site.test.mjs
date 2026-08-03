@@ -11,6 +11,9 @@ import {
 
 const projectRoot = new URL("../", import.meta.url);
 const leftwardRandomValues = [0.25];
+const mobilePandaArena = { width: 390, height: 844, size: 228 };
+const maximumHeavyDropMilliseconds = 1_200;
+const minimumVisibleBounceSizeRatio = 0.1;
 
 function repeatingRandom(values) {
   let index = 0;
@@ -133,7 +136,7 @@ test("panda ports the game's rigid-body drop with three times its game mass", ()
 
 test("panda falls heavily without airborne spin and rolls only after impact", () => {
   const simulation = new PandaDropSimulation(
-    { width: 390, height: 844, size: 228 },
+    mobilePandaArena,
     repeatingRandom(leftwardRandomValues),
   );
   const initialPose = simulation.pose;
@@ -169,6 +172,96 @@ test("panda falls heavily without airborne spin and rolls only after impact", ()
   assert.ok(Math.abs(simulation.pose.angle) > 0.05);
   assert.equal(simulation.isSettled, true);
   assert.ok(wallMilliseconds < 4_000);
+});
+
+test("panda crosses the visible screen at full speed instead of slow motion", () => {
+  const simulation = new PandaDropSimulation(
+    mobilePandaArena,
+    repeatingRandom(leftwardRandomValues),
+  );
+  let firstVisibleMilliseconds = null;
+  let firstImpactMilliseconds = null;
+  let previousVelocityY = simulation.motion.velocityY;
+  let wallMilliseconds = 0;
+
+  while (firstImpactMilliseconds === null && wallMilliseconds < 6_000) {
+    simulation.step(pandaDropPresentation.fixedStepMilliseconds);
+    wallMilliseconds +=
+      pandaDropPresentation.fixedStepMilliseconds /
+      pandaDropPresentation.timeScale;
+    const motion = simulation.motion;
+
+    if (
+      firstVisibleMilliseconds === null &&
+      simulation.pose.y + mobilePandaArena.size > 0
+    ) {
+      firstVisibleMilliseconds = wallMilliseconds;
+    }
+    if (previousVelocityY > 0 && motion.velocityY < 0) {
+      firstImpactMilliseconds = wallMilliseconds;
+    }
+    previousVelocityY = motion.velocityY;
+  }
+
+  assert.ok(firstVisibleMilliseconds !== null);
+  assert.ok(firstImpactMilliseconds !== null);
+  const visibleDropMilliseconds =
+    firstImpactMilliseconds - firstVisibleMilliseconds;
+  assert.ok(
+    visibleDropMilliseconds <= maximumHeavyDropMilliseconds,
+    `visible drop took ${visibleDropMilliseconds.toFixed(0)} ms`,
+  );
+});
+
+test("panda's first floor impact creates a visibly tall rebound", () => {
+  const simulation = new PandaDropSimulation(
+    mobilePandaArena,
+    repeatingRandom(leftwardRandomValues),
+  );
+  let impactY = null;
+  let reboundTopY = Number.POSITIVE_INFINITY;
+  let previousVelocityY = simulation.motion.velocityY;
+  let simulatedMilliseconds = 0;
+
+  while (
+    simulatedMilliseconds <
+    pandaDropPresentation.reducedMotionSimulationLimitMilliseconds
+  ) {
+    simulation.step(pandaDropPresentation.fixedStepMilliseconds);
+    simulatedMilliseconds += pandaDropPresentation.fixedStepMilliseconds;
+    const motion = simulation.motion;
+
+    if (impactY === null && previousVelocityY > 0 && motion.velocityY < 0) {
+      impactY = simulation.pose.y;
+      reboundTopY = simulation.pose.y;
+    } else if (impactY !== null) {
+      reboundTopY = Math.min(reboundTopY, simulation.pose.y);
+      if (previousVelocityY < 0 && motion.velocityY >= 0) {
+        break;
+      }
+    }
+    previousVelocityY = motion.velocityY;
+  }
+
+  assert.ok(impactY !== null);
+  const reboundHeight = impactY - reboundTopY;
+  const minimumReboundHeight =
+    mobilePandaArena.size * minimumVisibleBounceSizeRatio;
+  assert.ok(
+    reboundHeight >= minimumReboundHeight,
+    `first rebound rose ${reboundHeight.toFixed(1)} px; expected at least ${minimumReboundHeight.toFixed(1)} px`,
+  );
+});
+
+test("react-spring presents the sampled rigid-body trajectory", async () => {
+  const component = await readFile(
+    new URL("app/_components/physics-panda.tsx", projectRoot),
+    "utf8",
+  );
+
+  assert.match(component, /@react-spring\/web/);
+  assert.match(component, /animated\(Image\)/);
+  assert.match(component, /playhead/);
 });
 
 test("physics board is an absolute 100vw by 100vh world at the origin", async () => {

@@ -2,7 +2,8 @@
 
 > Start pracy: 2026-08-03 22:02 CEST
 > Koniec pracy: 2026-08-03 22:14 CEST
-> Status: zweryfikowany
+> Status: regresja: 1
+> Regresja: [panda nadal spada w zwolnionym tempie, a odbicie nie jest widoczne](./001-lekka-obracajaca-sie-panda-regresja-1.md)
 > Zgłoszenie: „no ale to sie jakoś obraca działa jak balonik to ma byc dokładnie ten sam enginge pieczątka ma spaść i się odbić o potroczyć dokładnie jak w grze. teraz renderujesz jakas głupote obracjącą się piecztke która zachowuje sie jakby miała 10gramów, popraw to i wrzuć na domene”
 > Klasyfikacja: klient-lokalny
 > Rodzaj dowodu: compositor-czasowy
