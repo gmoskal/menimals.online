@@ -10,6 +10,13 @@ import {
 } from "../app/_lib/panda-drop-physics.ts";
 
 const projectRoot = new URL("../", import.meta.url);
+const leftwardRandomValues = [0.25];
+
+function repeatingRandom(values) {
+  let index = 0;
+
+  return () => values[index++ % values.length];
+}
 
 test("home reveals the App Store scribble after the physical panda settles", async () => {
   const component = await readFile(
@@ -83,11 +90,9 @@ test("panda ports the game's rigid-body drop with three times its game mass", ()
   ];
 
   for (const viewport of viewports) {
-    const randomValues = [0.75, 0.25, 0.75];
-    let randomIndex = 0;
     const simulation = new PandaDropSimulation(
       viewport,
-      () => randomValues[randomIndex++ % randomValues.length],
+      repeatingRandom(leftwardRandomValues),
     );
     const initialPose = simulation.pose;
     const initialMotion = simulation.motion;
@@ -111,10 +116,11 @@ test("panda ports the game's rigid-body drop with three times its game mass", ()
       simulatedMilliseconds += pandaDropPresentation.fixedStepMilliseconds;
     }
 
+    assert.equal(initialPose.angle, 0);
     assert.equal(initialPose.y, -viewport.size);
     assert.ok(initialMotion.velocityX < 0);
     assert.ok(initialMotion.velocityY > 0);
-    assert.ok(initialMotion.angularVelocity > 0);
+    assert.equal(initialMotion.angularVelocity, 0);
     assert.ok(maximumVelocityY > initialMotion.velocityY);
     assert.ok(bounceCount >= 1);
     assert.equal(simulation.isSettled, true);
@@ -123,6 +129,46 @@ test("panda ports the game's rigid-body drop with three times its game mass", ()
     assert.equal(simulation.body.mass, giantPandaDropPhysics.mass);
     assert.ok(simulation.body.bounds.max.y <= viewport.height + 1);
   }
+});
+
+test("panda falls heavily without airborne spin and rolls only after impact", () => {
+  const simulation = new PandaDropSimulation(
+    { width: 390, height: 844, size: 228 },
+    repeatingRandom(leftwardRandomValues),
+  );
+  const initialPose = simulation.pose;
+  const initialMotion = simulation.motion;
+  let airborneAngle = Math.abs(initialPose.angle);
+  let firstBounceMilliseconds = null;
+  let previousVelocityY = initialMotion.velocityY;
+  let wallMilliseconds = 0;
+
+  assert.equal(initialPose.angle, 0);
+  assert.equal(initialMotion.angularVelocity, 0);
+
+  while (!simulation.isSettled && wallMilliseconds < 6_000) {
+    simulation.step(pandaDropPresentation.fixedStepMilliseconds);
+    wallMilliseconds +=
+      pandaDropPresentation.fixedStepMilliseconds /
+      pandaDropPresentation.timeScale;
+    const motion = simulation.motion;
+
+    if (firstBounceMilliseconds === null && previousVelocityY > 0) {
+      if (motion.velocityY < 0) {
+        firstBounceMilliseconds = wallMilliseconds;
+      } else {
+        airborneAngle = Math.max(airborneAngle, Math.abs(simulation.pose.angle));
+      }
+    }
+    previousVelocityY = motion.velocityY;
+  }
+
+  assert.ok(firstBounceMilliseconds !== null);
+  assert.ok(firstBounceMilliseconds < 2_700);
+  assert.ok(airborneAngle < 0.001);
+  assert.ok(Math.abs(simulation.pose.angle) > 0.05);
+  assert.equal(simulation.isSettled, true);
+  assert.ok(wallMilliseconds < 4_000);
 });
 
 test("physics board is an absolute 100vw by 100vh world at the origin", async () => {

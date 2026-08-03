@@ -73,7 +73,8 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
         pandaDropPresentation.maximumFrameMilliseconds,
       );
       previousFrame = frameTime;
-      accumulatedMilliseconds += frameMilliseconds;
+      accumulatedMilliseconds +=
+        frameMilliseconds * pandaDropPresentation.timeScale;
 
       while (
         accumulatedMilliseconds >=
