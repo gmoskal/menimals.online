@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 import {
-  advancePandaDropSimulation,
-  createPandaDropSimulation,
+  PandaDropSimulation,
+  giantPandaCollisionPolygon,
   giantPandaDropPhysics,
   matchGameDropPhysics,
   pandaDropPresentation,
@@ -19,7 +19,9 @@ test("home reveals the App Store scribble after the physical panda settles", asy
 
   assert.match(component, /className="panda-stage"/);
   assert.match(component, /<PhysicsPanda/);
-  assert.match(component, /isPandaSettled \?/);
+  assert.match(component, /settledPanda \?/);
+  assert.match(component, /settledPanda\.centerX/);
+  assert.match(component, /settledPanda\.topY/);
   assert.match(component, /<ScribbleAppStoreCta/);
   assert.match(component, /height: 125/);
   assert.match(component, /markerStrokeWidth: 71/);
@@ -32,8 +34,12 @@ test("home reveals the App Store scribble after the physical panda settles", asy
   assert.doesNotMatch(component, /<footer/);
 });
 
-test("panda ports the vertical game drop and settles centered after one bounce", () => {
+test("panda ports the game's rigid-body drop with three times its game mass", () => {
   assert.deepEqual(matchGameDropPhysics, {
+    angularDamping: 0.012,
+    angularVelocityBase: 1.2,
+    angularVelocityImpactMultiplier: 0.2,
+    boundaryFriction: 0.48,
     boundaryRestitution: 0.22,
     collisionBodyScale: 0.94,
     dropVelocityBase: 18,
@@ -41,11 +47,34 @@ test("panda ports the vertical game drop and settles centered after one bounce",
     dropVelocityRankGrowth: 2.65,
     gravityMagnitude: 13.92,
     heavyStampRestitution: 0.14,
+    horizontalVelocityBase: 18,
+    horizontalVelocityImpactMultiplier: 4.5,
+    impactRankGrowth: 0.055,
     lightStampRestitution: 0.34,
     linearDamping: 0.03,
+    massBase: 0.82,
+    massGrowth: 1.22,
+    massMaximum: 16,
+    massMultiplier: 3,
+    maximumImpactScale: 2.25,
+    maximumInitialRotation: Math.PI / 18,
+    stampFriction: 0.52,
   });
-  assert.ok(Math.abs(giantPandaDropPhysics.initialVelocity - 41.85) < 0.0001);
-  assert.equal(giantPandaDropPhysics.restitution, 0.22);
+  assert.ok(
+    Math.abs(giantPandaDropPhysics.downwardVelocity - 41.85) < 0.0001,
+  );
+  assert.ok(
+    Math.abs(giantPandaDropPhysics.horizontalVelocityMagnitude - 24.7275) <
+      0.0001,
+  );
+  assert.ok(
+    Math.abs(giantPandaDropPhysics.angularVelocityMagnitude - 1.499) <
+      0.0001,
+  );
+  assert.ok(
+    Math.abs(giantPandaDropPhysics.mass - 0.82 * 1.22 ** 9 * 3) < 0.0001,
+  );
+  assert.equal(giantPandaCollisionPolygon.length, 10);
 
   const viewports = [
     { width: 1440, height: 900, size: 420 },
@@ -54,47 +83,49 @@ test("panda ports the vertical game drop and settles centered after one bounce",
   ];
 
   for (const viewport of viewports) {
-    const arena = {
-      ...viewport,
-      floorY: viewport.height - viewport.size - 14,
-    };
-    const simulation = createPandaDropSimulation(arena);
-    const initialY = simulation.body.y;
-    const initialVelocityY = simulation.body.velocityY;
-    const targetX = (viewport.width - viewport.size) / 2;
-    let acceleratedVelocityY = initialVelocityY;
+    const randomValues = [0.75, 0.25, 0.75];
+    let randomIndex = 0;
+    const simulation = new PandaDropSimulation(
+      viewport,
+      () => randomValues[randomIndex++ % randomValues.length],
+    );
+    const initialPose = simulation.pose;
+    const initialMotion = simulation.motion;
+    let maximumVelocityY = initialMotion.velocityY;
     let bounceCount = 0;
-    let simulatedSeconds = 0;
+    let previousVelocityY = initialMotion.velocityY;
+    let simulatedMilliseconds = 0;
 
     while (
       !simulation.isSettled &&
-      simulatedSeconds < pandaDropPresentation.maximumSimulationSeconds
+      simulatedMilliseconds <
+        pandaDropPresentation.reducedMotionSimulationLimitMilliseconds
     ) {
-      const velocityY = simulation.body.velocityY;
-      advancePandaDropSimulation(
-        simulation,
-        pandaDropPresentation.fixedStepSeconds,
-      );
-      if (simulatedSeconds === 0) {
-        acceleratedVelocityY = simulation.body.velocityY;
-      }
-      if (velocityY > 0 && simulation.body.velocityY < 0) {
+      simulation.step(pandaDropPresentation.fixedStepMilliseconds);
+      const motion = simulation.motion;
+      maximumVelocityY = Math.max(maximumVelocityY, motion.velocityY);
+      if (previousVelocityY > 0 && motion.velocityY < 0) {
         bounceCount += 1;
       }
-      assert.equal(simulation.body.x, targetX);
-      simulatedSeconds += pandaDropPresentation.fixedStepSeconds;
+      previousVelocityY = motion.velocityY;
+      simulatedMilliseconds += pandaDropPresentation.fixedStepMilliseconds;
     }
 
-    assert.ok(initialY < -viewport.size);
-    assert.ok(acceleratedVelocityY > initialVelocityY);
-    assert.equal(bounceCount, 1);
+    assert.equal(initialPose.y, -viewport.size);
+    assert.ok(initialMotion.velocityX < 0);
+    assert.ok(initialMotion.velocityY > 0);
+    assert.ok(initialMotion.angularVelocity > 0);
+    assert.ok(maximumVelocityY > initialMotion.velocityY);
+    assert.ok(bounceCount >= 1);
     assert.equal(simulation.isSettled, true);
-    assert.equal(simulation.body.x, targetX);
-    assert.equal(simulation.body.y, arena.floorY);
+    assert.notEqual(simulation.pose.centerX, viewport.width / 2);
+    assert.notEqual(simulation.pose.angle, initialPose.angle);
+    assert.equal(simulation.body.mass, giantPandaDropPhysics.mass);
+    assert.ok(simulation.body.bounds.max.y <= viewport.height + 1);
   }
 });
 
-test("panda is twice the previous size and never rotates", async () => {
+test("physics board is an absolute 100vw by 100vh world at the origin", async () => {
   const [component, styles] = await Promise.all([
     readFile(
       new URL("app/_components/physics-panda.tsx", projectRoot),
@@ -105,7 +136,16 @@ test("panda is twice the previous size and never rotates", async () => {
 
   assert.match(styles, /46\.666svh/);
   assert.match(styles, /58\.666vw/);
-  assert.doesNotMatch(component, /rotate\(/);
+  assert.match(styles, /\.panda-stage\s*\{[^}]*position: absolute;/);
+  assert.match(styles, /\.panda-stage\s*\{[^}]*top: 0;/);
+  assert.match(styles, /\.panda-stage\s*\{[^}]*left: 0;/);
+  assert.match(styles, /\.panda-stage\s*\{[^}]*width: 100vw;/);
+  assert.match(styles, /\.panda-stage\s*\{[^}]*height: 100vh;/);
+  assert.match(styles, /\.panda-physics-stage\s*\{[^}]*width: 100vw;/);
+  assert.match(styles, /\.panda-physics-stage\s*\{[^}]*height: 100vh;/);
+  assert.match(component, /rotate\(/);
+  assert.match(component, /size: panda\.offsetWidth/);
+  assert.doesNotMatch(component, /floorRef|panda-floor/);
 });
 
 test("privacy policy is complete in Polish and English", async () => {

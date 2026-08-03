@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState, type CSSProperties } from "react";
 import { PhysicsPanda } from "./physics-panda";
 import { ScribbleAppStoreCta } from "./scribble-app-store-cta";
+import type { PandaDropPose } from "../_lib/panda-drop-physics";
 import {
   Locale,
   siteConfig,
@@ -34,9 +35,12 @@ const storyAppStoreBaseScale = 0.6;
 const storyAppStoreScaleMultiplier = 1.5;
 const storyAppStoreScale =
   storyAppStoreBaseScale * storyAppStoreScaleMultiplier;
+const storyAppStoreGap = 100;
+const storyAppStoreScaledHeight =
+  storyAppStoreScribble.height * storyAppStoreScale;
 const storyAppStoreScaledFrameStyle = {
-  height: storyAppStoreScribble.height * storyAppStoreScale,
-  width: "100%",
+  height: storyAppStoreScaledHeight,
+  width: 0,
 } satisfies CSSProperties;
 const storyAppStoreTransformStyle = {
   transform: `translateX(-50%) scale(${storyAppStoreScale})`,
@@ -80,7 +84,7 @@ function readPreferences(): Preferences {
 
 export function SitePage(p: SitePageProps) {
   const [preferences, setPreferences] = useState<Preferences | null>(null);
-  const [isPandaSettled, setIsPandaSettled] = useState(false);
+  const [settledPanda, setSettledPanda] = useState<PandaDropPose | null>(null);
   const activePreferences = preferences ?? defaultPreferences;
   const content = siteContent[activePreferences.locale];
 
@@ -147,12 +151,19 @@ export function SitePage(p: SitePageProps) {
           <PhysicsPanda
             alt={content.pandaAlt}
             isActive={preferences !== null}
-            onSettledChange={setIsPandaSettled}
+            onSettledChange={setSettledPanda}
           />
-          {isPandaSettled ? (
+          {settledPanda ? (
             <div
               className="app-store-cta-frame"
-              style={storyAppStoreScaledFrameStyle}
+              style={{
+                ...storyAppStoreScaledFrameStyle,
+                left: settledPanda.centerX,
+                top:
+                  settledPanda.topY -
+                  storyAppStoreGap -
+                  storyAppStoreScaledHeight,
+              }}
             >
               <div
                 className="app-store-cta-transform"

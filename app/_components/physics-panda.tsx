@@ -4,27 +4,27 @@ import Image from "next/image";
 import { useReducedMotion } from "motion/react";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import {
-  advancePandaDropSimulation,
-  createPandaDropSimulation,
+  PandaDropSimulation,
   pandaDropPresentation,
-  settledPandaDropBody,
   type PandaDropArena,
-  type PandaDropBody,
+  type PandaDropPose,
 } from "../_lib/panda-drop-physics";
 
 type PhysicsPandaProps = {
   readonly alt: string;
   readonly isActive: boolean;
-  readonly onSettledChange: (isSettled: boolean) => void;
+  readonly onSettledChange: (pose: PandaDropPose | null) => void;
 };
 
-function applyBody(element: HTMLImageElement, body: PandaDropBody) {
-  element.style.transform = `translate3d(${body.x}px, ${body.y}px, 0)`;
+function applyPose(element: HTMLImageElement, pose: PandaDropPose) {
+  element.style.transform = [
+    `translate3d(${pose.x}px, ${pose.y}px, 0)`,
+    `rotate(${pose.angle}rad)`,
+  ].join(" ");
 }
 
 export function PhysicsPanda(p: PhysicsPandaProps) {
   const stageRef = useRef<HTMLDivElement>(null);
-  const floorRef = useRef<HTMLDivElement>(null);
   const pandaRef = useRef<HTMLImageElement>(null);
   const settledChangeRef = useRef(p.onSettledChange);
   const reduceMotion = Boolean(useReducedMotion());
@@ -39,61 +39,56 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
     }
 
     const stage = stageRef.current;
-    const floor = floorRef.current;
     const panda = pandaRef.current;
-    if (!stage || !floor || !panda) {
+    if (!stage || !panda) {
       return;
     }
 
     let animationFrame = 0;
     let previousFrame = performance.now();
-    let accumulatedSeconds = 0;
+    let accumulatedMilliseconds = 0;
 
-    const measureArena = (): PandaDropArena => {
-      const stageRect = stage.getBoundingClientRect();
-      const pandaSize = panda.getBoundingClientRect().width;
+    const arena = (): PandaDropArena => {
+      const stageBounds = stage.getBoundingClientRect();
 
       return {
-        floorY: floor.offsetTop - pandaSize,
-        height: stageRect.height,
-        size: pandaSize,
-        width: stageRect.width,
+        height: stageBounds.height,
+        size: panda.offsetWidth,
+        width: stageBounds.width,
       };
     };
 
-    let arena = measureArena();
-    let simulation = createPandaDropSimulation(arena);
+    let simulation = new PandaDropSimulation(arena());
 
-    const placeSettledPanda = () => {
-      arena = measureArena();
-      applyBody(panda, settledPandaDropBody(arena));
+    const settle = () => {
+      const pose = simulation.pose;
+      applyPose(panda, pose);
       panda.dataset.settled = "true";
+      settledChangeRef.current(pose);
     };
 
     const animate = (frameTime: number) => {
-      const frameSeconds = Math.min(
-        (frameTime - previousFrame) / 1000,
-        pandaDropPresentation.maximumFrameSeconds,
+      const frameMilliseconds = Math.min(
+        frameTime - previousFrame,
+        pandaDropPresentation.maximumFrameMilliseconds,
       );
       previousFrame = frameTime;
-      accumulatedSeconds += frameSeconds * pandaDropPresentation.timeScale;
+      accumulatedMilliseconds += frameMilliseconds;
 
       while (
-        accumulatedSeconds >= pandaDropPresentation.fixedStepSeconds &&
+        accumulatedMilliseconds >=
+          pandaDropPresentation.fixedStepMilliseconds &&
         !simulation.isSettled
       ) {
-        advancePandaDropSimulation(
-          simulation,
-          pandaDropPresentation.fixedStepSeconds,
-        );
-        accumulatedSeconds -= pandaDropPresentation.fixedStepSeconds;
+        simulation.step(pandaDropPresentation.fixedStepMilliseconds);
+        accumulatedMilliseconds -=
+          pandaDropPresentation.fixedStepMilliseconds;
       }
 
-      applyBody(panda, simulation.body);
+      applyPose(panda, simulation.pose);
 
       if (simulation.isSettled) {
-        panda.dataset.settled = "true";
-        settledChangeRef.current(true);
+        settle();
         return;
       }
 
@@ -102,41 +97,45 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
 
     const start = () => {
       window.cancelAnimationFrame(animationFrame);
-      arena = measureArena();
+      simulation = new PandaDropSimulation(arena());
       panda.dataset.settled = "false";
-      settledChangeRef.current(false);
+      settledChangeRef.current(null);
+      applyPose(panda, simulation.pose);
 
       if (reduceMotion) {
-        placeSettledPanda();
-        settledChangeRef.current(true);
+        let simulatedMilliseconds = 0;
+        while (
+          !simulation.isSettled &&
+          simulatedMilliseconds <
+            pandaDropPresentation.reducedMotionSimulationLimitMilliseconds
+        ) {
+          simulation.step(pandaDropPresentation.fixedStepMilliseconds);
+          simulatedMilliseconds +=
+            pandaDropPresentation.fixedStepMilliseconds;
+        }
+        settle();
         return;
       }
 
-      simulation = createPandaDropSimulation(arena);
-      applyBody(panda, simulation.body);
       previousFrame = performance.now();
-      accumulatedSeconds = 0;
+      accumulatedMilliseconds = 0;
       animationFrame = window.requestAnimationFrame(animate);
     };
 
-    let previousDimensions = "";
+    let dimensions = "";
     const resizeObserver = new ResizeObserver(() => {
-      const measuredArena = measureArena();
-      const dimensions = [
+      const measuredArena = arena();
+      const nextDimensions = [
         Math.round(measuredArena.width),
         Math.round(measuredArena.height),
         Math.round(measuredArena.size * 100) / 100,
       ].join(":");
-      if (dimensions === previousDimensions) {
+      if (nextDimensions === dimensions) {
         return;
       }
 
-      previousDimensions = dimensions;
-      if (simulation.isSettled || reduceMotion) {
-        placeSettledPanda();
-      } else {
-        start();
-      }
+      dimensions = nextDimensions;
+      start();
     });
 
     start();
@@ -161,7 +160,6 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
         alt={p.alt}
         priority
       />
-      <div ref={floorRef} className="panda-floor" aria-hidden="true" />
     </div>
   );
 }
