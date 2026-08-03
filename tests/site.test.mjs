@@ -3,6 +3,7 @@ import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   PandaDropSimulation,
+  createMenimalDropTrajectory,
   giantPandaCollisionPolygon,
   giantPandaDropPhysics,
   matchGameDropPhysics,
@@ -15,7 +16,7 @@ const mobilePandaArena = { width: 390, height: 844, size: 228 };
 const sharedMenimalArena = { width: 1_000, height: 844, size: 228 };
 const expectedKiwiSizeRatio = 0.75;
 const expectedPenguinSizeRatio = 0.825;
-const menimalSpawnIntervalMilliseconds = 1_000;
+const menimalSpawnIntervalMilliseconds = 3_000;
 const maximumTossVelocity = 1_800;
 const maximumHeavyDropMilliseconds = 1_200;
 const minimumVisibleBounceSizeRatio = 0.1;
@@ -68,6 +69,25 @@ function bodyExtents(simulation) {
     right: Math.max(...xCoordinates),
     top: Math.min(...yCoordinates),
   };
+}
+
+function firstFallDuration(trajectory, kind) {
+  const initialY = trajectory.frames[0].poses[kind].y;
+  const firstMoveIndex = trajectory.frames.findIndex(
+    (frame) => Math.abs(frame.poses[kind].y - initialY) > 0.001,
+  );
+  const firstBounceIndex = trajectory.frames.findIndex(
+    (frame, index, frames) =>
+      index > firstMoveIndex &&
+      frame.poses[kind].y < frames[index - 1].poses[kind].y,
+  );
+
+  assert.ok(firstMoveIndex >= 0, `${kind} did not start falling`);
+  assert.ok(firstBounceIndex > firstMoveIndex, `${kind} did not rebound`);
+  return (
+    trajectory.frames[firstBounceIndex].atMilliseconds -
+    trajectory.frames[firstMoveIndex].atMilliseconds
+  );
 }
 
 test("home reveals the App Store scribble after the physical panda settles", async () => {
@@ -470,7 +490,7 @@ test("panda, kiwi, and penguin collide in one Matter world", () => {
   assert.ok(simulation.penguinMotion.velocityX > 0);
 });
 
-test("three menimals enter from the center one second apart", () => {
+test("three menimals enter from the center three seconds apart", () => {
   const simulation = new PandaDropSimulation(
     sharedMenimalArena,
     repeatingRandom(leftwardRandomValues),
@@ -483,7 +503,7 @@ test("three menimals enter from the center one second apart", () => {
   assert.equal(simulation.pose.centerX, sharedMenimalArena.width / 2);
   assert.equal(simulation.kiwiPose.centerX, sharedMenimalArena.width / 2);
   assert.equal(simulation.penguinPose.centerX, sharedMenimalArena.width / 2);
-  while (simulatedMilliseconds < 2_100) {
+  while (simulatedMilliseconds < 6_100) {
     simulation.step(pandaDropPresentation.fixedStepMilliseconds);
     simulatedMilliseconds += pandaDropPresentation.fixedStepMilliseconds;
     const dynamicBodyCount = simulation.engine.world.bodies.filter(
@@ -501,6 +521,18 @@ test("three menimals enter from the center one second apart", () => {
   assert.ok(
     Math.abs(firstActiveAt.get(3) - menimalSpawnIntervalMilliseconds * 2) <=
       pandaDropPresentation.fixedStepMilliseconds,
+  );
+});
+
+test("the heavier panda reaches its first rebound before the penguin", () => {
+  const trajectory = createMenimalDropTrajectory(
+    mobilePandaArena,
+    () => 0.5,
+  );
+
+  assert.ok(
+    firstFallDuration(trajectory, "panda") <
+      firstFallDuration(trajectory, "penguin"),
   );
 });
 

@@ -8,12 +8,14 @@ const giantPandaTierIndex = 9;
 const maximumRegularTierIndex = 12;
 const matterBaseStepsPerSecond = 60;
 const millisecondsPerSecond = 1_000;
+const menimalSpawnIntervalMilliseconds = 3_000;
 const boundaryThickness = 200;
 const offscreenSideBoundaryExtension = 10_000;
 const websiteGravityViewportHeightsPerSecondSquared = 1.9;
 const websiteDropOverrides = {
   initialAngle: 0,
   initialAngularVelocity: 0,
+  initialVelocityMassMultiplier: 1,
 } as const;
 
 export const matchGameDropPhysics = {
@@ -110,7 +112,7 @@ export const menimalDropConfig = {
     initialCenterXRatio: 0.5,
     initialTopOffsetRatio: 0,
     sizeRatio: 0.75,
-    spawnDelayMilliseconds: 1_000,
+    spawnDelayMilliseconds: menimalSpawnIntervalMilliseconds,
     tierIndex: kiwiTierIndex,
   },
   penguin: {
@@ -118,7 +120,7 @@ export const menimalDropConfig = {
     initialCenterXRatio: 0.5,
     initialTopOffsetRatio: 0,
     sizeRatio: 0.825,
-    spawnDelayMilliseconds: 2_000,
+    spawnDelayMilliseconds: menimalSpawnIntervalMilliseconds * 2,
     tierIndex: penguinTierIndex,
   },
 } as const;
@@ -364,7 +366,10 @@ function createMenimalBodyState(p: CreateMenimalBodyParams): MenimalBodyState {
       physics.horizontalVelocityMagnitude,
       p.randomUnit,
     ),
-    velocityY: physics.downwardVelocity,
+    velocityY:
+      physics.downwardVelocity *
+      physics.mass *
+      websiteDropOverrides.initialVelocityMassMultiplier,
   };
 
   Body.setMass(body, physics.mass);
@@ -421,6 +426,7 @@ export class PandaDropSimulation {
   readonly kiwiBody: MatterBody | null;
   readonly penguinBody: MatterBody | null;
   private boundaryContact = false;
+  private readonly boundaryContactBodies = new Set<MatterBody>();
   private readonly ceiling: MatterBody;
   private ceilingIsActive = false;
   private menimalContact = false;
@@ -529,6 +535,12 @@ export class PandaDropSimulation {
       for (const pair of event.pairs) {
         const bodyAIsDynamic = dynamicBodies.has(pair.bodyA);
         const bodyBIsDynamic = dynamicBodies.has(pair.bodyB);
+        if (bodyAIsDynamic && pair.bodyB.isStatic) {
+          this.boundaryContactBodies.add(pair.bodyA);
+        }
+        if (bodyBIsDynamic && pair.bodyA.isStatic) {
+          this.boundaryContactBodies.add(pair.bodyB);
+        }
         this.boundaryContact ||=
           bodyAIsDynamic !== bodyBIsDynamic &&
           (pair.bodyA.isStatic || pair.bodyB.isStatic);
@@ -547,6 +559,12 @@ export class PandaDropSimulation {
 
   get hasAllMenimalsActive() {
     return this.states.every((state) => state.active);
+  }
+
+  get haveAllMenimalsTouchedBoundary() {
+    return this.states.every((state) =>
+      this.boundaryContactBodies.has(state.body),
+    );
   }
 
   get isSettled() {
@@ -771,10 +789,9 @@ export function createMenimalDropTrajectory(
   ) {
     simulation.step(pandaDropPresentation.fixedStepMilliseconds);
     simulatedMilliseconds += pandaDropPresentation.fixedStepMilliseconds;
-    const timeScale =
-      simulation.hasAllMenimalsActive && simulation.hasBoundaryContact
-        ? pandaDropPresentation.settlingTimeScale
-        : pandaDropPresentation.timeScale;
+    const timeScale = simulation.haveAllMenimalsTouchedBoundary
+      ? pandaDropPresentation.settlingTimeScale
+      : pandaDropPresentation.timeScale;
     durationMilliseconds +=
       pandaDropPresentation.fixedStepMilliseconds / timeScale;
     frames.push({
