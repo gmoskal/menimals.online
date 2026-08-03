@@ -1,16 +1,16 @@
 # Bug 001 regresja 1 — panda spada w zwolnionym tempie i nie odbija się
 
 > Start pracy: 2026-08-03 23:20 CEST
-> Koniec pracy: —
-> Status: test czerwony
+> Koniec pracy: 2026-08-03 23:37 CEST
+> Status: zablokowany: brak dowodu końcowego compositora
 > Zgłoszenie: „no to nadal nie wygląda tak jak powinno, wygląda jak w zwolnionym tempie nie odbija się zrób głęboką analize tego i popraw”
 > Uzupełnienie 1: „użyj react-spring moze do tych animacji bo to też nie jest płynne”
 > Klasyfikacja: klient-lokalny
 > Rodzaj dowodu: compositor-czasowy
 > Baza analizy: afd28526ed6b0d7e6e1d400094f94a3a3b0dc10d
 > Commit builda nagrania przed: 46bb60f
-> Commit builda nagrania po: —
-> Wynik obserwacji compositora: —
+> Commit builda nagrania po: 15b7188
+> Wynik obserwacji compositora: niezweryfikowany — brak dostępnej przeglądarki do nagrania końcowego renderu
 > Raport bazowy: ./001-lekka-obracajaca-sie-panda.md
 
 ## TL;DR
@@ -103,9 +103,127 @@ Wcześniejsza bramka, która nie wykrywa regresji:
 ℹ fail 0
 ```
 
+### Implementacja
+
+- `app/_lib/panda-drop-physics.ts`:
+  - skaluje grawitację pełnoekranowej fazy wejścia do wysokości viewportu zamiast odtwarzać całą fizykę z globalnym `timeScale: 3.6`;
+  - konfiguruje właściwości statycznych granic po utworzeniu ciała. Matter.js zerował `restitution` i nadpisywał `friction` przy `isStatic: true`, więc wcześniejsza podłoga miała w runtime `restitution = 0`, mimo deklarowanego `0.22`;
+  - dolna granica używa istniejącego parametru gry `lightStampRestitution = 0.34`, ściany zachowują `boundaryRestitution = 0.22`;
+  - tworzy pełną, deterministyczną trajektorię Matter w `120 Hz`, rejestruje pierwszy kontakt i interpoluje pozy między próbkami;
+  - zachowuje dokładny wielokąt pandy, masę `14.729…` (`3×` masa gry), tarcie, tłumienie i brak obrotu przed kontaktem.
+- `app/_components/physics-panda.tsx`:
+  - usuwa ręczny akumulator `requestAnimationFrame` i wielokrotne skoki transformacji;
+  - odtwarza liniowy playhead przez `useSpring`, a `animated(Image)` nanosi interpolowaną transformację bez renderu React dla każdej klatki;
+  - sprężyna nie liczy trajektorii ani zderzeń — te nadal pochodzą wyłącznie z Matter.js;
+  - zachowuje restart przy zmianie rozmiaru, reduced motion oraz callback pozy końcowej dla CTA.
+- `package.json` / `package-lock.json`: dodano docelowy pakiet webowy `@react-spring/web@10.1.2`.
+- `tests/site.test.mjs`: dodano trzy trwałe bramki regresji bez zmiany asercji po RED.
+
+Dostarczenie: commit `15b7188` na `main`.
+
+### GREEN i bramki zakresu
+
+Nowe testy, to samo polecenie i te same asercje co w RED:
+
+```text
+✔ panda crosses the visible screen at full speed instead of slow motion (5.36275ms)
+✔ panda's first floor impact creates a visibly tall rebound (2.213875ms)
+✔ react-spring presents the sampled rigid-body trajectory (1.719208ms)
+ℹ tests 3
+ℹ pass 3
+ℹ fail 0
+```
+
+Pełny standardowy zestaw `npm test`:
+
+```text
+✔ home reveals the App Store scribble after the physical panda settles
+✔ panda ports the game's rigid-body drop with three times its game mass
+✔ panda falls heavily without airborne spin and rolls only after impact
+✔ panda crosses the visible screen at full speed instead of slow motion
+✔ panda's first floor impact creates a visibly tall rebound
+✔ react-spring presents the sampled rigid-body trajectory
+✔ physics board is an absolute 100vw by 100vh world at the origin
+✔ privacy policy is complete in Polish and English
+✔ panda asset is present
+✔ the exact app icon asset is present
+✔ the exact App Store badge mask is present
+ℹ tests 11
+ℹ pass 11
+ℹ fail 0
+```
+
+`npm run typecheck`:
+
+```text
+> tsc --noEmit
+```
+
+`npm run build`:
+
+```text
+✓ Compiled successfully
+✓ Generating static pages using 5 workers (4/4)
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+└ ○ /privacy
+```
+
+Pomiar kompletnej trajektorii z produkcyjnego modelu dla kierunku deterministycznego:
+
+```text
+1440×900, panda 420 px: lot 1012 ms, odbicie 76.8 px (18.3%), koniec 4218 ms
+390×844, panda 228 px: lot 1003 ms, odbicie 34.2 px (15.0%), koniec 2040 ms
+320×568, panda 188 px: lot  995 ms, odbicie 23.2 px (12.3%), koniec 2247 ms
+```
+
+Produkcja:
+
+```text
+deployment dpl_2xe1QaJnTkUhBsXjiM8nT3N3fYNq
+target production
+status Ready
+alias https://menimals.online
+HTTP/2 200
+```
+
+Mapa AC:
+
+- AC-1: zielony — test czasu lotu + pomiar trzech viewportów.
+- AC-2: zielony — test wysokości odbicia + pomiar trzech viewportów.
+- AC-3: zielony — `panda falls heavily without airborne spin and rolls only after impact`.
+- AC-4: kod/test pomocniczy zielony; końcowa płynność nadal wymaga nagrania compositora.
+- AC-5: zielony — `physics board is an absolute 100vw by 100vh world at the origin`.
+- AC-6: deploy i HTTP zielone; brak końcowego nagrania uniemożliwia wizualne zamknięcie.
+
+Visual Truth Gate przy zamknięciu przebiegu:
+
+```text
+VISUAL_TRUTH_GATE=PASS: raport ma dozwolony stan
+VISUAL_TRUTH_GATE=FAIL
+- `--claim-fixed` wymaga dokładnie `> Status: zweryfikowany`
+- brak pliku dowodowego: /Users/gmm/prv/menimals.online/bugs/assets/001-lekka-obracajaca-sie-panda-regresja-1/after.mp4
+```
+
+Porażka trybu `--claim-fixed` jest zamierzonym fail-closed: kod jest na produkcji, ale bez nagrania nie wolno nazwać wyniku zweryfikowanym fixem.
+
+### Pozostałe kroki dostarczenia
+
+- Nagrać końcowy render z `https://menimals.online` w `390 × 844` przez dostępny browser/compositor i zapisać jako `bugs/assets/001-lekka-obracajaca-sie-panda-regresja-1/after.mp4`.
+- Porównać klatki spadku, pierwszego kontaktu, wierzchołka odbicia i końca toczenia z `before.mp4`, następnie uruchomić oba tryby walidatora Visual Truth Gate.
+
 ### Cleanup
 
-- Zachowywane lokalnie podczas pracy: `bugs/assets/001-lekka-obracajaca-sie-panda-regresja-1/` — dowody compositora wymagane przez Visual Truth Gate.
+- Zatrzymano lokalny proces `next start` (sesja `58788`); port `3000` nie ma procesu nasłuchującego.
+- XcodeBuildMCP nie uruchomił builda (`Transport closed`). Natywne `xcodebuildmcp-cleanup --dry-run`: `candidateCount: 0`, `bytes: 0`; nic do usunięcia.
+- Nie utworzono worktree, brancha ani taskowego DerivedData. Jedyny worktree repozytorium to `main`; `~/tmp/codex/bug-000` i `~/tmp/codex/bug--001` nie istnieją.
+- Globalny sweep `~/tmp`: 69 nieużywanych `TemporaryDirectory.*` starszych niż cztery godziny (około `0.14 MB`) przeniesiono odzyskiwalnie do Kosza; po operacji pozostało `0`. Dwa aktywnie używane sockety SSH/VS Code pozostawiono.
+- `/tmp`: brak rozpoznawalnych taskowych `bug*.mp4/png/jpg` i `codex-*`.
+- Wygasłe dowody (>5 dni): `0` katalogów, `0 B`. Oryginalny i bieżący katalog dowodów zamknięto dzisiaj, więc pozostają w pięciodniowym oknie.
+- Zachowano `bugs/assets/001-lekka-obracajaca-sie-panda-regresja-1/` (`120 KB`, potwierdzone przez `git check-ignore`) z odrzuconym `before.mp4`; musi przetrwać do zdobycia końcowego dowodu.
+- Zachowano obce katalogi `~/tmp/codex/bug-177-regresja-1` (`1.3 GB`), `bug-181` (`61 MB`), `bug-183` (`225 MB`) i `task-testflight-1.0.1` (`1.4 MB`): nie należą do tego repozytorium i nie da się tu udowodnić ich dostarczenia ani braku aktywnego właściciela. Puste obce katalogi także pozostawiono.
+- Stan końcowy: `~/tmp` `1.6 GB`, `~/.codex` `18 GB`, globalny Xcode DerivedData `182 MB`; wolne `33 GiB` na wolumenie danych.
 
 ## Dowód końcowego compositora
 
@@ -114,4 +232,13 @@ Wcześniejsza bramka, która nie wykrywa regresji:
 
 ## Protokół weryfikacji
 
-Do uzupełnienia po implementacji.
+1. **RED:** w detached worktree na `afd28526ed6b0d7e6e1d400094f94a3a3b0dc10d` skopiować niezmieniony `tests/site.test.mjs` z commita `15b7188` i uruchomić:
+   `node --test --test-name-pattern="panda crosses the visible screen|panda's first floor impact|react-spring presents" tests/site.test.mjs`.
+   Oczekiwane są trzy porażki: `2528 ms`, `16.2 px < 22.8 px` oraz brak `@react-spring/web`.
+2. **GREEN:** na `main` uruchomić `npm test && npm run typecheck && npm run build`; oczekiwane `11/11`, TypeScript exit `0` i trzy statyczne route'y. Test fizyki uruchamia prawdziwy Matter.js i prawdziwe granice; kontrolowana jest tylko funkcja losująca kierunek poziomy. Test źródłowy React Spring jest bramką pomocniczą, nie dowodem wizualnym.
+3. **Środowisko:** `npx --yes vercel@latest inspect https://menimals-online-zfgiogvoo-gmoskals-projects-1e7a5b2a.vercel.app --wait` ma pokazać deployment `dpl_2xe1QaJnTkUhBsXjiM8nT3N3fYNq`, `target production`, `Ready` i alias `https://menimals.online`; `curl -I https://menimals.online` ma zwrócić `200`.
+4. **Dowód wizualny pozostaje zablokowany:** otworzyć produkcję w `390 × 844`, nagrać pełny przebieg do pojawienia CTA i zapisać `after.mp4`. Oczekiwane: około 1 s widocznego lotu bez obrotu, wyraźne odbicie, obrót/toczenie dopiero po kontakcie i płynna interpolacja bez skoków. In-app Browser zwrócił `No browser is available`; iOS debugger zwrócił `Transport closed`.
+5. **Diff:** sprawdzić `createBoundary`, `PandaDropSimulation`, `createPandaDropTrajectory`, `samplePandaDropTrajectory` oraz `PhysicsPanda`. Nie mogą zmienić się asset pandy, plansza `100vw × 100vh`, polityka, kontrolki i CTA.
+6. **Delivery:** `git merge-base --is-ancestor 15b7188 main` ma zwrócić `0`; `git rev-parse 'fix/001-lekka-obracajaca-sie-panda-regresja-1^{commit}'` ma wskazać `15b7188`.
+7. **Spot-check AC:** AC-1/2 — dwa nowe testy i pomiar trzech viewportów; AC-3 — istniejący test lotu/obrotu; AC-4 — import i playhead plus obowiązkowe nagranie; AC-5 — test planszy; AC-6 — Vercel Ready + końcowe nagranie.
+8. **Znane ograniczenia:** końcowa prawda compositora nie została zdobyta, więc raport jest zablokowany mimo deployu. `npm audit --omit=dev` zgłasza trzy wysokie podatności w istniejącym `next@16.2.6`/jego zależnościach; aktualizacja frameworka jest osobnym zakresem i nie była mieszana z poprawką fizyki.
