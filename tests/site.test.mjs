@@ -12,13 +12,60 @@ import {
 const projectRoot = new URL("../", import.meta.url);
 const leftwardRandomValues = [0.25];
 const mobilePandaArena = { width: 390, height: 844, size: 228 };
+const sharedMenimalArena = { width: 1_000, height: 844, size: 228 };
+const expectedKiwiSizeRatio = 0.75;
+const maximumTossVelocity = 1_800;
 const maximumHeavyDropMilliseconds = 1_200;
 const minimumVisibleBounceSizeRatio = 0.1;
+const viewportEdgeTolerance = 0.05;
 
 function repeatingRandom(values) {
   let index = 0;
 
   return () => values[index++ % values.length];
+}
+
+function releaseFromArenaCenter(motion) {
+  const x = (mobilePandaArena.width - mobilePandaArena.size) / 2;
+  const y = (mobilePandaArena.height - mobilePandaArena.size) / 2;
+
+  return {
+    motion,
+    pose: {
+      angle: 0,
+      centerX: mobilePandaArena.width / 2,
+      isSettled: false,
+      topY: y,
+      x,
+      y,
+    },
+  };
+}
+
+function releaseAt({ motion, size, x, y }) {
+  return {
+    motion,
+    pose: {
+      angle: 0,
+      centerX: x + size / 2,
+      isSettled: false,
+      topY: y,
+      x,
+      y,
+    },
+  };
+}
+
+function bodyExtents(simulation) {
+  const xCoordinates = simulation.body.vertices.map((vertex) => vertex.x);
+  const yCoordinates = simulation.body.vertices.map((vertex) => vertex.y);
+
+  return {
+    bottom: Math.max(...yCoordinates),
+    left: Math.min(...xCoordinates),
+    right: Math.max(...xCoordinates),
+    top: Math.min(...yCoordinates),
+  };
 }
 
 test("home reveals the App Store scribble after the physical panda settles", async () => {
@@ -38,7 +85,7 @@ test("home reveals the App Store scribble after the physical panda settles", asy
   assert.match(component, /mobileScale: 0\.72/);
   assert.match(component, /strokeCount: 6/);
   assert.match(component, /width: 470/);
-  assert.match(component, /className="brand-mark"/);
+  assert.doesNotMatch(component, /className="brand-mark"/);
   assert.match(component, /className="privacy-shortcut"/);
   assert.doesNotMatch(component, /languageLabel|selectLocale/);
   assert.doesNotMatch(component, /<footer/);
@@ -309,12 +356,116 @@ test("a released panda inherits the toss and falls back under gravity", () => {
   assert.equal(simulation.isSettled, true);
 });
 
+test("tossed panda rebounds off every viewport edge", () => {
+  const edgeCases = [
+    {
+      distanceFromEdge: (simulation) => bodyExtents(simulation).top,
+      name: "top",
+      velocity: (motion) => motion.velocityY,
+      velocityX: 0,
+      velocityY: -maximumTossVelocity,
+    },
+    {
+      distanceFromEdge: (simulation) =>
+        mobilePandaArena.height - bodyExtents(simulation).bottom,
+      name: "bottom",
+      velocity: (motion) => motion.velocityY,
+      velocityX: 0,
+      velocityY: maximumTossVelocity,
+    },
+    {
+      distanceFromEdge: (simulation) => bodyExtents(simulation).left,
+      name: "left",
+      velocity: (motion) => motion.velocityX,
+      velocityX: -maximumTossVelocity,
+      velocityY: 0,
+    },
+    {
+      distanceFromEdge: (simulation) =>
+        mobilePandaArena.width - bodyExtents(simulation).right,
+      name: "right",
+      velocity: (motion) => motion.velocityX,
+      velocityX: maximumTossVelocity,
+      velocityY: 0,
+    },
+  ];
+
+  for (const edgeCase of edgeCases) {
+    const release = releaseFromArenaCenter({
+      angularVelocity: 0,
+      velocityX: edgeCase.velocityX,
+      velocityY: edgeCase.velocityY,
+    });
+    const simulation = new PandaDropSimulation(
+      mobilePandaArena,
+      repeatingRandom(leftwardRandomValues),
+      release,
+    );
+    const initialVelocity = edgeCase.velocity(simulation.motion);
+    let minimumDistance = edgeCase.distanceFromEdge(simulation);
+    let reversed = false;
+    let simulatedMilliseconds = 0;
+
+    while (!reversed && simulatedMilliseconds < 2_500) {
+      simulation.step(pandaDropPresentation.fixedStepMilliseconds);
+      simulatedMilliseconds += pandaDropPresentation.fixedStepMilliseconds;
+      minimumDistance = Math.min(
+        minimumDistance,
+        edgeCase.distanceFromEdge(simulation),
+      );
+      const velocity = edgeCase.velocity(simulation.motion);
+      reversed = initialVelocity < 0 ? velocity > 0 : velocity < 0;
+    }
+
+    assert.equal(reversed, true, `${edgeCase.name} edge did not rebound`);
+    assert.ok(
+      minimumDistance >= -viewportEdgeTolerance,
+      `${edgeCase.name} edge was crossed by ${(-minimumDistance).toFixed(1)} px`,
+    );
+  }
+});
+
+test("panda and kiwi collide in one Matter world", () => {
+  const pandaRelease = releaseAt({
+    motion: { angularVelocity: 0, velocityX: 600, velocityY: 0 },
+    size: sharedMenimalArena.size,
+    x: 160,
+    y: 260,
+  });
+  const kiwiSize = sharedMenimalArena.size * expectedKiwiSizeRatio;
+  const kiwiRelease = releaseAt({
+    motion: { angularVelocity: 0, velocityX: -600, velocityY: 0 },
+    size: kiwiSize,
+    x: 610,
+    y: 280,
+  });
+  const simulation = new PandaDropSimulation(
+    sharedMenimalArena,
+    repeatingRandom(leftwardRandomValues),
+    pandaRelease,
+    { kiwiRelease },
+  );
+  const dynamicBodies = simulation.engine.world.bodies.filter(
+    (body) => !body.isStatic,
+  );
+  let simulatedMilliseconds = 0;
+
+  assert.equal(dynamicBodies.length, 2);
+  while (!simulation.hasMenimalContact && simulatedMilliseconds < 2_000) {
+    simulation.step(pandaDropPresentation.fixedStepMilliseconds);
+    simulatedMilliseconds += pandaDropPresentation.fixedStepMilliseconds;
+  }
+
+  assert.equal(simulation.hasMenimalContact, true);
+  assert.ok(simulation.kiwiMotion.velocityX > 0);
+});
+
 test("an edge toss cannot escape above the side walls", () => {
   const release = {
     motion: {
       angularVelocity: 0,
-      velocityX: 1_800,
-      velocityY: -1_800,
+      velocityX: maximumTossVelocity,
+      velocityY: -maximumTossVelocity,
     },
     pose: {
       angle: 0,
@@ -358,9 +509,24 @@ test("the panda accepts pointer toss gestures without making the stage draggable
   assert.match(component, /onPointerDown/);
   assert.match(component, /onPointerMove/);
   assert.match(component, /setPointerCapture/);
-  assert.match(component, /createPandaDropTrajectory\([^)]*release/);
+  assert.match(
+    component,
+    /createMenimalDropTrajectory\([\s\S]*?releases,/,
+  );
   assert.match(styles, /\.panda\s*\{[^}]*touch-action: none;/);
   assert.doesNotMatch(styles, /\.panda-physics-stage\s*\{[^}]*touch-action: none;/);
+});
+
+test("both plush toys expose the same pointer and keyboard toss interaction", async () => {
+  const component = await readFile(
+    new URL("app/_components/physics-panda.tsx", projectRoot),
+    "utf8",
+  );
+
+  assert.match(component, /src="\/panda\.png"/);
+  assert.match(component, /src="\/kiwi\.png"/);
+  assert.match(component, /onPointerDown/);
+  assert.match(component, /onKeyDown/);
 });
 
 test("physics board is an absolute 100vw by 100vh world at the origin", async () => {
@@ -401,6 +567,13 @@ test("privacy policy is complete in Polish and English", async () => {
 
 test("panda asset is present", async () => {
   await access(new URL("public/panda.png", projectRoot));
+});
+
+test("kiwi uses the exact game asset at three quarters of the panda size", async () => {
+  const physics = await import("../app/_lib/panda-drop-physics.ts");
+
+  await access(new URL("public/kiwi.png", projectRoot));
+  assert.equal(physics.kiwiDropPhysics.sizeRatio, expectedKiwiSizeRatio);
 });
 
 test("the exact app icon asset is present", async () => {

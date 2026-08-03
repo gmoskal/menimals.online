@@ -16,8 +16,6 @@
   --selection-bg: var(--selection);
   --text-primary: var(--foreground);
   --page-inline: clamp(18px, 4vw, 48px);
-  --brand-icon-radius: 15px;
-  --brand-icon-size: 80px;
   --panda-size: min(46.666svh, 58.666vw, 682.666px);
   --transition: 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -107,34 +105,9 @@ a {
   left: max(var(--page-inline), env(safe-area-inset-left));
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 10px;
   pointer-events: none;
-}
-
-.brand-mark {
-  display: block;
-  width: var(--brand-icon-size);
-  height: var(--brand-icon-size);
-  border-radius: var(--brand-icon-radius);
-  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.08);
-  pointer-events: auto;
-  transition: transform 180ms ease, box-shadow var(--transition);
-}
-
-.brand-mark:hover {
-  transform: translateY(-2px);
-}
-
-.brand-mark:active {
-  transform: scale(0.97);
-}
-
-.brand-mark__icon {
-  display: block;
-  width: var(--brand-icon-size);
-  height: var(--brand-icon-size);
-  border-radius: var(--brand-icon-radius);
 }
 
 .control-stack {
@@ -190,7 +163,6 @@ a {
 }
 
 .segmented__button:focus-visible,
-.brand-mark:focus-visible,
 .privacy-shortcut:focus-visible,
 .back-link:focus-visible,
 .email-link:focus-visible {

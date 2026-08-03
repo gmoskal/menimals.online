@@ -11,18 +11,27 @@ import {
   type PointerEvent,
 } from "react";
 import {
-  createPandaDropTrajectory,
-  samplePandaDropTrajectory,
+  createMenimalDropTrajectory,
+  menimalDropConfig,
+  menimalKinds,
+  sampleMenimalDropTrajectory,
+  type MenimalDropReleases,
+  type MenimalDropTrajectory,
+  type MenimalKind,
   type PandaDropArena,
+  type PandaDropMotion,
   type PandaDropPose,
   type PandaDropRelease,
-  type PandaDropTrajectory,
 } from "../_lib/panda-drop-physics";
 
 const AnimatedImage = animated(Image);
 const linearEasing = (progress: number) => progress;
+const stoppedMotion = {
+  angularVelocity: 0,
+  velocityX: 0,
+  velocityY: 0,
+} as const satisfies PandaDropMotion;
 const tossGesture = {
-  boundaryOverflowRatio: 0.2,
   keyboardVelocityY: -1_050,
   maximumVelocity: 1_800,
   sampleWindowMilliseconds: 120,
@@ -41,20 +50,26 @@ type PointerSample = {
   readonly y: number;
 };
 
-type PandaInteraction =
-  | { readonly kind: "playing" }
+type PlushInteraction =
+  | { readonly type: "playing" }
   | {
       readonly currentPose: PandaDropPose;
-      readonly kind: "dragging";
+      readonly menimal: MenimalKind;
       readonly originPointer: PointerSample;
       readonly originPose: PandaDropPose;
       readonly pointerId: number;
       readonly samples: readonly PointerSample[];
+      readonly type: "dragging";
     };
 
-type PandaRuntime = {
+type MenimalToss = {
+  readonly kind: MenimalKind;
+  readonly release: PandaDropRelease;
+};
+
+type MenimalRuntime = {
   readonly readArena: () => PandaDropArena;
-  readonly runTrajectory: (release?: PandaDropRelease) => void;
+  readonly runTrajectory: (toss?: MenimalToss) => void;
 };
 
 function clamp(value: number, minimum: number, maximum: number) {
@@ -88,18 +103,22 @@ function recentSamples(
   );
 }
 
+function menimalSize(kind: MenimalKind, arena: PandaDropArena) {
+  return arena.size * menimalDropConfig[kind].sizeRatio;
+}
+
 function translatedPose(
-  interaction: Extract<PandaInteraction, { kind: "dragging" }>,
+  interaction: Extract<PlushInteraction, { type: "dragging" }>,
   sample: PointerSample,
   arena: PandaDropArena,
-): PandaDropPose {
-  const overflow = arena.size * tossGesture.boundaryOverflowRatio;
+) {
+  const size = menimalSize(interaction.menimal, arena);
   const rawX =
     interaction.originPose.x + sample.x - interaction.originPointer.x;
   const rawY =
     interaction.originPose.y + sample.y - interaction.originPointer.y;
-  const x = clamp(rawX, -overflow, arena.width - arena.size + overflow);
-  const y = clamp(rawY, -arena.size, arena.height - arena.size + overflow);
+  const x = clamp(rawX, 0, Math.max(arena.width - size, 0));
+  const y = clamp(rawY, 0, Math.max(arena.height - size, 0));
 
   return {
     ...interaction.originPose,
@@ -136,10 +155,13 @@ function releaseMotion(samples: readonly PointerSample[]) {
 
 export function PhysicsPanda(p: PhysicsPandaProps) {
   const stageRef = useRef<HTMLDivElement>(null);
-  const pandaRef = useRef<HTMLImageElement>(null);
-  const trajectoryRef = useRef<PandaDropTrajectory>(null);
-  const runtimeRef = useRef<PandaRuntime>(null);
-  const interactionRef = useRef<PandaInteraction>({ kind: "playing" });
+  const menimalRefs = useRef<Record<MenimalKind, HTMLImageElement | null>>({
+    kiwi: null,
+    panda: null,
+  });
+  const trajectoryRef = useRef<MenimalDropTrajectory>(null);
+  const runtimeRef = useRef<MenimalRuntime>(null);
+  const interactionRef = useRef<PlushInteraction>({ type: "playing" });
   const interactionRevisionRef = useRef(0);
   const settledChangeRef = useRef(p.onSettledChange);
   const reduceMotion = Boolean(useReducedMotion());
@@ -147,46 +169,54 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
     interactionRevision: 0,
     playhead: 0,
   }));
-  const transform = to(
-    [spring.playhead, spring.interactionRevision],
-    (playhead) => {
-      const interaction = interactionRef.current;
-      if (interaction.kind === "dragging") {
-        return poseTransform(interaction.currentPose);
-      }
 
-      const trajectory = trajectoryRef.current;
-      return trajectory
-        ? poseTransform(samplePandaDropTrajectory(trajectory, playhead))
-        : "translate3d(calc(50vw - var(--panda-size) / 2), -100%, 0) rotate(0rad)";
-    },
-  );
-
-  const refreshInteraction = () => {
-    interactionRevisionRef.current += 1;
-    springApi.set({
-      interactionRevision: interactionRevisionRef.current,
-    });
-  };
-
-  const displayedPose = () => {
+  const displayedPose = (kind: MenimalKind) => {
     const interaction = interactionRef.current;
-    if (interaction.kind === "dragging") {
+    if (interaction.type === "dragging" && interaction.menimal === kind) {
       return interaction.currentPose;
     }
 
     const trajectory = trajectoryRef.current;
     return trajectory
-      ? samplePandaDropTrajectory(trajectory, spring.playhead.get())
+      ? sampleMenimalDropTrajectory(trajectory, spring.playhead.get())[kind]
       : null;
   };
 
-  const beginDrag = (event: PointerEvent<HTMLImageElement>) => {
+  const transformFor = (kind: MenimalKind) =>
+    to([spring.playhead, spring.interactionRevision], (playhead) => {
+      const interaction = interactionRef.current;
+      if (interaction.type === "dragging" && interaction.menimal === kind) {
+        return poseTransform(interaction.currentPose);
+      }
+
+      const trajectory = trajectoryRef.current;
+      if (trajectory) {
+        return poseTransform(
+          sampleMenimalDropTrajectory(trajectory, playhead)[kind],
+        );
+      }
+
+      const config = menimalDropConfig[kind];
+      return `translate3d(calc(${config.initialCenterXRatio * 100}vw - 50%), -160%, 0) rotate(0rad)`;
+    });
+
+  const pandaTransform = transformFor("panda");
+  const kiwiTransform = transformFor("kiwi");
+
+  const refreshInteraction = () => {
+    interactionRevisionRef.current += 1;
+    springApi.set({ interactionRevision: interactionRevisionRef.current });
+  };
+
+  const beginDrag = (
+    kind: MenimalKind,
+    event: PointerEvent<HTMLImageElement>,
+  ) => {
     if (!p.isActive) {
       return;
     }
 
-    const pose = displayedPose();
+    const pose = displayedPose(kind);
     if (!pose) {
       return;
     }
@@ -194,16 +224,16 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
     springApi.stop();
     event.currentTarget.setPointerCapture(event.pointerId);
     event.currentTarget.dataset.dragging = "true";
-    event.currentTarget.dataset.settled = "false";
     settledChangeRef.current(null);
     const sample = pointerSample(event);
     interactionRef.current = {
       currentPose: { ...pose, isSettled: false },
-      kind: "dragging",
+      menimal: kind,
       originPointer: sample,
       originPose: pose,
       pointerId: event.pointerId,
       samples: [sample],
+      type: "dragging",
     };
     refreshInteraction();
   };
@@ -212,7 +242,7 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
     const interaction = interactionRef.current;
     const runtime = runtimeRef.current;
     if (
-      interaction.kind !== "dragging" ||
+      interaction.type !== "dragging" ||
       interaction.pointerId !== event.pointerId ||
       !runtime
     ) {
@@ -235,7 +265,7 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
     const interaction = interactionRef.current;
     const runtime = runtimeRef.current;
     if (
-      interaction.kind !== "dragging" ||
+      interaction.type !== "dragging" ||
       interaction.pointerId !== event.pointerId ||
       !runtime
     ) {
@@ -243,43 +273,66 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
     }
 
     const samples = recentSamples(interaction.samples, pointerSample(event));
-    const release: PandaDropRelease = {
-      motion: inheritsGesture
-        ? releaseMotion(samples)
-        : { angularVelocity: 0, velocityX: 0, velocityY: 0 },
-      pose: interaction.currentPose,
+    const toss: MenimalToss = {
+      kind: interaction.menimal,
+      release: {
+        motion: inheritsGesture ? releaseMotion(samples) : stoppedMotion,
+        pose: interaction.currentPose,
+      },
     };
-    interactionRef.current = { kind: "playing" };
     event.currentTarget.dataset.dragging = "false";
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
-    runtime.runTrajectory(release);
+    runtime.runTrajectory(toss);
   };
 
-  const tossFromKeyboard = (event: KeyboardEvent<HTMLImageElement>) => {
+  const tossFromKeyboard = (
+    kind: MenimalKind,
+    event: KeyboardEvent<HTMLImageElement>,
+  ) => {
     if (event.key !== " " && event.key !== "Enter") {
       return;
     }
 
-    const pose = displayedPose();
+    const pose = displayedPose(kind);
     const runtime = runtimeRef.current;
     if (!pose || !runtime) {
       return;
     }
 
     event.preventDefault();
-    const release: PandaDropRelease = {
-      motion: {
-        angularVelocity: 0,
-        velocityX: 0,
-        velocityY: tossGesture.keyboardVelocityY,
+    runtime.runTrajectory({
+      kind,
+      release: {
+        motion: {
+          ...stoppedMotion,
+          velocityY: tossGesture.keyboardVelocityY,
+        },
+        pose: { ...pose, isSettled: false },
       },
-      pose: { ...pose, isSettled: false },
-    };
-    interactionRef.current = { kind: "playing" };
-    runtime.runTrajectory(release);
+    });
   };
+
+  const imageInteractionProps = (kind: MenimalKind) => ({
+    "aria-label": kind === "panda" ? p.alt : "Kiwi",
+    className: `panda panda--${kind}`,
+    draggable: false,
+    onKeyDown: (event: KeyboardEvent<HTMLImageElement>) =>
+      tossFromKeyboard(kind, event),
+    onPointerCancel: (event: PointerEvent<HTMLImageElement>) =>
+      endDrag(event, false),
+    onPointerDown: (event: PointerEvent<HTMLImageElement>) =>
+      beginDrag(kind, event),
+    onPointerMove: moveDrag,
+    onPointerUp: (event: PointerEvent<HTMLImageElement>) =>
+      endDrag(event, true),
+    ref: (element: HTMLImageElement | null) => {
+      menimalRefs.current[kind] = element;
+    },
+    role: "button",
+    tabIndex: 0,
+  });
 
   useEffect(() => {
     settledChangeRef.current = p.onSettledChange;
@@ -291,8 +344,9 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
     }
 
     const stage = stageRef.current;
-    const panda = pandaRef.current;
-    if (!stage || !panda) {
+    const panda = menimalRefs.current.panda;
+    const kiwi = menimalRefs.current.kiwi;
+    if (!stage || !panda || !kiwi) {
       return;
     }
 
@@ -306,21 +360,50 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
       };
     };
 
-    const settle = (trajectory: PandaDropTrajectory) => {
-      panda.dataset.settled = "true";
-      settledChangeRef.current(trajectory.finalPose);
+    const settle = (trajectory: MenimalDropTrajectory) => {
+      for (const kind of menimalKinds) {
+        const element = menimalRefs.current[kind];
+        if (element) {
+          element.dataset.settled = "true";
+        }
+      }
+      settledChangeRef.current(trajectory.finalPoses.panda);
     };
 
-    const runTrajectory = (release?: PandaDropRelease) => {
+    const runTrajectory = (toss?: MenimalToss) => {
       springApi.stop();
       const currentArena = readArena();
-      const trajectory = release
-        ? createPandaDropTrajectory(currentArena, Math.random, release)
-        : createPandaDropTrajectory(currentArena);
+      const releases = toss
+        ? Object.fromEntries(
+            menimalKinds.map((kind) => {
+              const pose = displayedPose(kind);
+              if (!pose) {
+                throw new Error(`Missing ${kind} pose`);
+              }
+
+              return [
+                kind,
+                kind === toss.kind
+                  ? toss.release
+                  : { motion: stoppedMotion, pose },
+              ];
+            }),
+          ) as MenimalDropReleases
+        : undefined;
+      const trajectory = createMenimalDropTrajectory(
+        currentArena,
+        Math.random,
+        releases,
+      );
       trajectoryRef.current = trajectory;
-      interactionRef.current = { kind: "playing" };
-      panda.dataset.dragging = "false";
-      panda.dataset.settled = "false";
+      interactionRef.current = { type: "playing" };
+      for (const kind of menimalKinds) {
+        const element = menimalRefs.current[kind];
+        if (element) {
+          element.dataset.dragging = "false";
+          element.dataset.settled = "false";
+        }
+      }
       settledChangeRef.current(null);
       springApi.set({ playhead: 0 });
       refreshInteraction();
@@ -376,23 +459,26 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
   return (
     <div ref={stageRef} className="panda-physics-stage">
       <AnimatedImage
-        ref={pandaRef}
-        className="panda"
-        style={{ transform }}
+        {...imageInteractionProps("panda")}
+        style={{ transform: pandaTransform }}
         src="/panda.png"
         width={1024}
         height={1024}
         sizes="(max-aspect-ratio: 1/1) 58vw, 46vh"
         alt={p.alt}
-        aria-label={p.alt}
-        draggable={false}
-        onKeyDown={tossFromKeyboard}
-        onPointerCancel={(event) => endDrag(event, false)}
-        onPointerDown={beginDrag}
-        onPointerMove={moveDrag}
-        onPointerUp={(event) => endDrag(event, true)}
-        role="button"
-        tabIndex={0}
+        priority
+      />
+      <AnimatedImage
+        {...imageInteractionProps("kiwi")}
+        style={{
+          transform: kiwiTransform,
+          width: `calc(var(--panda-size) * ${menimalDropConfig.kiwi.sizeRatio})`,
+        }}
+        src="/kiwi.png"
+        width={1024}
+        height={1024}
+        sizes="(max-aspect-ratio: 1/1) 44vw, 35vh"
+        alt="Kiwi"
         priority
       />
     </div>

@@ -242,3 +242,7 @@ Porażka trybu `--claim-fixed` jest zamierzonym fail-closed: kod jest na produkc
 6. **Delivery:** `git merge-base --is-ancestor 15b7188 main` ma zwrócić `0`; `git rev-parse 'fix/001-lekka-obracajaca-sie-panda-regresja-1^{commit}'` ma wskazać `15b7188`.
 7. **Spot-check AC:** AC-1/2 — dwa nowe testy i pomiar trzech viewportów; AC-3 — istniejący test lotu/obrotu; AC-4 — import i playhead plus obowiązkowe nagranie; AC-5 — test planszy; AC-6 — Vercel Ready + końcowe nagranie.
 8. **Znane ograniczenia:** końcowa prawda compositora nie została zdobyta, więc raport jest zablokowany mimo deployu. `npm audit --omit=dev` zgłasza trzy wysokie podatności w istniejącym `next@16.2.6`/jego zależnościach; aktualizacja frameworka jest osobnym zakresem i nie była mieszana z poprawką fizyki.
+
+### Uzupełnienie 2 — wspólny świat pandy i kiwi
+
+Na późniejsze, jawne życzenie użytkownika pojedynczy interfejs `createPandaDropTrajectory(release)` został zastąpiony wspólnym `createMenimalDropTrajectory(releases)`. Pomocnicza asercja źródłowa została zaktualizowana do nowej nazwy; rzeczywisty kontrakt pozostaje ten sam: gest tworzy trajektorię Matter.js, a React Spring wyłącznie prezentuje jej klatki.

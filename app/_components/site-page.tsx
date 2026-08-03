@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type CSSProperties } from "react";
 import { PhysicsPanda } from "./physics-panda";
@@ -111,18 +110,6 @@ export function SitePage(p: SitePageProps) {
   return (
     <div className={p.page === "home" ? "site site--home" : "site site--privacy"}>
       <header className="controls">
-        <Link className="brand-mark" href="/" aria-label={siteConfig.name}>
-          <Image
-            className="brand-mark__icon"
-            src={siteConfig.appIcon}
-            alt=""
-            width={160}
-            height={160}
-            sizes="80px"
-            priority
-          />
-        </Link>
-
         <div className="control-stack">
           <div className="segmented" aria-label={content.themeLabel}>
             {themeCodes.map((theme) => (
