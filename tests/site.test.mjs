@@ -14,6 +14,8 @@ const leftwardRandomValues = [0.25];
 const mobilePandaArena = { width: 390, height: 844, size: 228 };
 const sharedMenimalArena = { width: 1_000, height: 844, size: 228 };
 const expectedKiwiSizeRatio = 0.75;
+const expectedPenguinSizeRatio = 0.825;
+const menimalSpawnIntervalMilliseconds = 1_000;
 const maximumTossVelocity = 1_800;
 const maximumHeavyDropMilliseconds = 1_200;
 const minimumVisibleBounceSizeRatio = 0.1;
@@ -425,39 +427,81 @@ test("tossed panda rebounds off every viewport edge", () => {
   }
 });
 
-test("panda and kiwi collide in one Matter world", () => {
+test("panda, kiwi, and penguin collide in one Matter world", () => {
   const pandaRelease = releaseAt({
-    motion: { angularVelocity: 0, velocityX: 600, velocityY: 0 },
+    motion: { angularVelocity: 0, velocityX: 0, velocityY: 0 },
     size: sharedMenimalArena.size,
-    x: 160,
+    x: 20,
     y: 260,
   });
   const kiwiSize = sharedMenimalArena.size * expectedKiwiSizeRatio;
   const kiwiRelease = releaseAt({
-    motion: { angularVelocity: 0, velocityX: -600, velocityY: 0 },
+    motion: { angularVelocity: 0, velocityX: 600, velocityY: 0 },
     size: kiwiSize,
-    x: 610,
+    x: 300,
     y: 280,
+  });
+  const penguinSize =
+    sharedMenimalArena.size * expectedPenguinSizeRatio;
+  const penguinRelease = releaseAt({
+    motion: { angularVelocity: 0, velocityX: -600, velocityY: 0 },
+    size: penguinSize,
+    x: 610,
+    y: 270,
   });
   const simulation = new PandaDropSimulation(
     sharedMenimalArena,
     repeatingRandom(leftwardRandomValues),
     pandaRelease,
-    { kiwiRelease },
+    { kiwiRelease, penguinRelease },
   );
   const dynamicBodies = simulation.engine.world.bodies.filter(
     (body) => !body.isStatic,
   );
   let simulatedMilliseconds = 0;
 
-  assert.equal(dynamicBodies.length, 2);
+  assert.equal(dynamicBodies.length, 3);
   while (!simulation.hasMenimalContact && simulatedMilliseconds < 2_000) {
     simulation.step(pandaDropPresentation.fixedStepMilliseconds);
     simulatedMilliseconds += pandaDropPresentation.fixedStepMilliseconds;
   }
 
   assert.equal(simulation.hasMenimalContact, true);
-  assert.ok(simulation.kiwiMotion.velocityX > 0);
+  assert.ok(simulation.penguinMotion.velocityX > 0);
+});
+
+test("three menimals enter from the center one second apart", () => {
+  const simulation = new PandaDropSimulation(
+    sharedMenimalArena,
+    repeatingRandom(leftwardRandomValues),
+    undefined,
+    { staggeredEntrance: true },
+  );
+  const firstActiveAt = new Map([[1, 0]]);
+  let simulatedMilliseconds = 0;
+
+  assert.equal(simulation.pose.centerX, sharedMenimalArena.width / 2);
+  assert.equal(simulation.kiwiPose.centerX, sharedMenimalArena.width / 2);
+  assert.equal(simulation.penguinPose.centerX, sharedMenimalArena.width / 2);
+  while (simulatedMilliseconds < 2_100) {
+    simulation.step(pandaDropPresentation.fixedStepMilliseconds);
+    simulatedMilliseconds += pandaDropPresentation.fixedStepMilliseconds;
+    const dynamicBodyCount = simulation.engine.world.bodies.filter(
+      (body) => !body.isStatic,
+    ).length;
+    if (!firstActiveAt.has(dynamicBodyCount)) {
+      firstActiveAt.set(dynamicBodyCount, simulatedMilliseconds);
+    }
+  }
+
+  assert.ok(
+    Math.abs(firstActiveAt.get(2) - menimalSpawnIntervalMilliseconds) <=
+      pandaDropPresentation.fixedStepMilliseconds,
+  );
+  assert.ok(
+    Math.abs(firstActiveAt.get(3) - menimalSpawnIntervalMilliseconds * 2) <=
+      pandaDropPresentation.fixedStepMilliseconds,
+  );
 });
 
 test("an edge toss cannot escape above the side walls", () => {
@@ -517,7 +561,7 @@ test("the panda accepts pointer toss gestures without making the stage draggable
   assert.doesNotMatch(styles, /\.panda-physics-stage\s*\{[^}]*touch-action: none;/);
 });
 
-test("both plush toys expose the same pointer and keyboard toss interaction", async () => {
+test("all three plush toys expose the same pointer and keyboard toss interaction", async () => {
   const component = await readFile(
     new URL("app/_components/physics-panda.tsx", projectRoot),
     "utf8",
@@ -525,6 +569,7 @@ test("both plush toys expose the same pointer and keyboard toss interaction", as
 
   assert.match(component, /src="\/panda\.png"/);
   assert.match(component, /src="\/kiwi\.png"/);
+  assert.match(component, /src="\/pingwin\.png"/);
   assert.match(component, /onPointerDown/);
   assert.match(component, /onKeyDown/);
 });
@@ -574,6 +619,20 @@ test("kiwi uses the exact game asset at three quarters of the panda size", async
 
   await access(new URL("public/kiwi.png", projectRoot));
   assert.equal(physics.kiwiDropPhysics.sizeRatio, expectedKiwiSizeRatio);
+});
+
+test("penguin uses the exact game asset and all three masses are distinct", async () => {
+  const physics = await import("../app/_lib/panda-drop-physics.ts");
+
+  await access(new URL("public/pingwin.png", projectRoot));
+  assert.equal(
+    physics.penguinDropPhysics.sizeRatio,
+    expectedPenguinSizeRatio,
+  );
+  assert.ok(physics.kiwiDropPhysics.mass < physics.penguinDropPhysics.mass);
+  assert.ok(
+    physics.penguinDropPhysics.mass < physics.giantPandaDropPhysics.mass,
+  );
 });
 
 test("the exact app icon asset is present", async () => {

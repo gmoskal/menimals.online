@@ -37,6 +37,10 @@ const tossGesture = {
   sampleWindowMilliseconds: 120,
   velocityMultiplier: 1.15,
 } as const;
+const companionNames = {
+  kiwi: "Kiwi",
+  penguin: "Penguin",
+} as const satisfies Record<Exclude<MenimalKind, "panda">, string>;
 
 type PhysicsPandaProps = {
   readonly alt: string;
@@ -158,6 +162,7 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
   const menimalRefs = useRef<Record<MenimalKind, HTMLImageElement | null>>({
     kiwi: null,
     panda: null,
+    penguin: null,
   });
   const trajectoryRef = useRef<MenimalDropTrajectory>(null);
   const runtimeRef = useRef<MenimalRuntime>(null);
@@ -202,6 +207,7 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
 
   const pandaTransform = transformFor("panda");
   const kiwiTransform = transformFor("kiwi");
+  const penguinTransform = transformFor("penguin");
 
   const refreshInteraction = () => {
     interactionRevisionRef.current += 1;
@@ -315,7 +321,7 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
   };
 
   const imageInteractionProps = (kind: MenimalKind) => ({
-    "aria-label": kind === "panda" ? p.alt : "Kiwi",
+    "aria-label": kind === "panda" ? p.alt : companionNames[kind],
     className: `panda panda--${kind}`,
     draggable: false,
     onKeyDown: (event: KeyboardEvent<HTMLImageElement>) =>
@@ -346,7 +352,8 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
     const stage = stageRef.current;
     const panda = menimalRefs.current.panda;
     const kiwi = menimalRefs.current.kiwi;
-    if (!stage || !panda || !kiwi) {
+    const penguin = menimalRefs.current.penguin;
+    if (!stage || !panda || !kiwi || !penguin) {
       return;
     }
 
@@ -479,6 +486,19 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
         height={1024}
         sizes="(max-aspect-ratio: 1/1) 44vw, 35vh"
         alt="Kiwi"
+        priority
+      />
+      <AnimatedImage
+        {...imageInteractionProps("penguin")}
+        style={{
+          transform: penguinTransform,
+          width: `calc(var(--panda-size) * ${menimalDropConfig.penguin.sizeRatio})`,
+        }}
+        src="/pingwin.png"
+        width={1024}
+        height={1024}
+        sizes="(max-aspect-ratio: 1/1) 48vw, 38vh"
+        alt="Penguin"
         priority
       />
     </div>
