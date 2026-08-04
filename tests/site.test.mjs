@@ -92,8 +92,9 @@ function firstFallDuration(trajectory, kind) {
 }
 
 test("social sharing uses a static versioned JPEG like 28gor", async () => {
-  const [layout, siteContent, socialImage] = await Promise.all([
+  const [layout, nextConfig, siteContent, socialImage] = await Promise.all([
     readFile(new URL("app/layout.tsx", projectRoot), "utf8"),
+    readFile(new URL("next.config.ts", projectRoot), "utf8"),
     readFile(new URL("app/_lib/site-content.ts", projectRoot), "utf8"),
     readFile(
       new URL("public/og-image-20260804-02.jpeg", projectRoot),
@@ -106,6 +107,8 @@ test("social sharing uses a static versioned JPEG like 28gor", async () => {
   assert.match(siteContent, /siteSocialImageVersion = "20260804-02"/);
   assert.match(siteContent, /`\/og-image-\$\{siteSocialImageVersion\}\.jpeg`/);
   assert.match(siteContent, /type: "image\/jpeg"/);
+  assert.match(nextConfig, /source: "\/og-image-:path\(\.\*\)"/);
+  assert.match(nextConfig, /public, max-age=31536000, immutable/);
   assert.deepEqual([...socialImage.subarray(0, 3)], [0xff, 0xd8, 0xff]);
 });
 
