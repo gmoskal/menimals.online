@@ -17,6 +17,7 @@ const socialPageHeaders = [
     value: "public, max-age=0, must-revalidate",
   },
 ];
+const socialImageSources = ["/og-image.jpeg"] as const;
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
@@ -27,6 +28,10 @@ const nextConfig: NextConfig = {
         source: "/",
         headers: socialPageHeaders,
       },
+      ...socialImageSources.map((source) => ({
+        source,
+        headers: socialImageHeaders,
+      })),
       {
         source: "/og-image-:path(.*)",
         headers: socialImageHeaders,

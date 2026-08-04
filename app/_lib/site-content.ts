@@ -14,7 +14,7 @@ export const siteConfig = {
   operator: "Async.Studio",
 } as const;
 
-export const siteSocialImageVersion = "20260804-02";
+export const siteSocialImageVersion = "20260804-03";
 
 export function absoluteSiteUrl(pathname = "/") {
   return new URL(pathname, siteConfig.siteUrl).toString();

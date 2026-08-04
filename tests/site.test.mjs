@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
+import { once } from "node:events";
 import { access, readFile } from "node:fs/promises";
+import { createServer } from "node:net";
 import test from "node:test";
+import { setTimeout as delay } from "node:timers/promises";
+import { fileURLToPath } from "node:url";
 import {
   PandaDropSimulation,
   createMenimalDropTrajectory,
@@ -22,6 +27,62 @@ const maximumHeavyDropMilliseconds = 1_200;
 const maximumNaturalMenimalFallMilliseconds = 650;
 const minimumVisibleBounceSizeRatio = 0.1;
 const viewportEdgeTolerance = 0.05;
+const approvedSocialImagePath = "public/og-image-20260804-02.jpeg";
+const expectedSocialImageVersion = "20260804-03";
+const currentSocialImagePath = `public/og-image-${expectedSocialImageVersion}.jpeg`;
+const jpegContentType = "image/jpeg";
+const socialImageCacheControl = "public, max-age=31536000, immutable";
+
+async function availableTcpPort() {
+  const server = createServer();
+
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+
+  const address = server.address();
+  assert.ok(address && typeof address !== "string");
+
+  await new Promise((resolve, reject) => {
+    server.close((error) => (error ? reject(error) : resolve()));
+  });
+
+  return address.port;
+}
+
+async function waitForServer(url, serverProcess, output) {
+  const deadline = Date.now() + 20_000;
+
+  while (Date.now() < deadline) {
+    assert.equal(
+      serverProcess.exitCode,
+      null,
+      `Next server exited before it was ready.\n${output()}`,
+    );
+
+    try {
+      const response = await fetch(url);
+      if (response.ok) return;
+    } catch {}
+
+    await delay(100);
+  }
+
+  assert.fail(`Next server did not become ready.\n${output()}`);
+}
+
+async function stopServer(serverProcess) {
+  if (serverProcess.exitCode !== null) return;
+
+  serverProcess.kill("SIGTERM");
+  await Promise.race([once(serverProcess, "exit"), delay(5_000)]);
+
+  if (serverProcess.exitCode === null) {
+    serverProcess.kill("SIGKILL");
+    await once(serverProcess, "exit");
+  }
+}
 
 function repeatingRandom(values) {
   let index = 0;
@@ -97,20 +158,147 @@ test("social sharing uses a static versioned JPEG like 28gor", async () => {
     readFile(new URL("next.config.ts", projectRoot), "utf8"),
     readFile(new URL("app/_lib/site-content.ts", projectRoot), "utf8"),
     readFile(
-      new URL("public/og-image-20260804-02.jpeg", projectRoot),
+      new URL(currentSocialImagePath, projectRoot),
     ),
   ]);
 
   assert.match(layout, /summary_large_image/);
   assert.match(layout, /siteSocialImage/);
   assert.match(layout, /siteSocialTwitterImage/);
-  assert.match(siteContent, /siteSocialImageVersion = "20260804-02"/);
+  assert.match(
+    siteContent,
+    new RegExp(`siteSocialImageVersion = "${expectedSocialImageVersion}"`),
+  );
   assert.match(siteContent, /`\/og-image-\$\{siteSocialImageVersion\}\.jpeg`/);
   assert.match(siteContent, /type: "image\/jpeg"/);
   assert.match(nextConfig, /source: "\/og-image-:path\(\.\*\)"/);
   assert.match(nextConfig, /public, max-age=31536000, immutable/);
   assert.deepEqual([...socialImage.subarray(0, 3)], [0xff, 0xd8, 0xff]);
 });
+
+test(
+  "social crawlers receive a complete preview contract from the real Next server",
+  { timeout: 45_000 },
+  async (context) => {
+    const [{ siteConfig, siteSocialContent, siteSocialImage }, port] =
+      await Promise.all([
+        import("../app/_lib/site-content.ts"),
+        availableTcpPort(),
+      ]);
+    const serverUrl = `http://127.0.0.1:${port}`;
+    const serverProcess = spawn(
+      process.execPath,
+      [
+        "node_modules/next/dist/bin/next",
+        "dev",
+        "--webpack",
+        "--hostname",
+        "127.0.0.1",
+        "--port",
+        String(port),
+      ],
+      {
+        cwd: fileURLToPath(projectRoot),
+        env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" },
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+    let serverOutput = "";
+    const appendOutput = (chunk) => {
+      serverOutput += chunk.toString();
+    };
+
+    serverProcess.stdout.on("data", appendOutput);
+    serverProcess.stderr.on("data", appendOutput);
+    context.after(() => stopServer(serverProcess));
+
+    await waitForServer(serverUrl, serverProcess, () => serverOutput);
+
+    const crawlerHeaders = {
+      "user-agent":
+        "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
+    };
+    const pageResponse = await fetch(`${serverUrl}/`, {
+      headers: crawlerHeaders,
+    });
+    const pageHtml = await pageResponse.text();
+
+    assert.equal(pageResponse.status, 200);
+    assert.match(
+      pageHtml,
+      /<link rel="canonical" href="https:\/\/menimals\.online\/?"/,
+    );
+    assert.ok(
+      pageHtml.includes(
+        `<meta property="og:title" content="${siteSocialContent.title}"`,
+      ),
+    );
+    assert.ok(
+      pageHtml.includes(
+        `<meta property="og:description" content="${siteSocialContent.description}"`,
+      ),
+    );
+    assert.ok(
+      pageHtml.includes(
+        `<meta property="og:image" content="${siteSocialImage.secureUrl}"`,
+      ),
+    );
+    assert.ok(
+      pageHtml.includes(
+        `<meta name="twitter:image" content="${siteSocialImage.secureUrl}"`,
+      ),
+    );
+    assert.ok(
+      pageHtml.includes(
+        `<link rel="image_src" href="${siteSocialImage.secureUrl}"`,
+      ),
+    );
+
+    const [approvedImage, versionedResponse, stableResponse, robotsResponse] =
+      await Promise.all([
+        readFile(new URL(approvedSocialImagePath, projectRoot)),
+        fetch(`${serverUrl}${siteSocialImage.url}`, {
+          headers: crawlerHeaders,
+        }),
+        fetch(`${serverUrl}/og-image.jpeg`, { headers: crawlerHeaders }),
+        fetch(`${serverUrl}/robots.txt`, { headers: crawlerHeaders }),
+      ]);
+
+    assert.equal(versionedResponse.status, 200);
+    assert.equal(stableResponse.status, 200);
+    assert.equal(robotsResponse.status, 200);
+    assert.equal(versionedResponse.headers.get("content-type"), jpegContentType);
+    assert.equal(stableResponse.headers.get("content-type"), jpegContentType);
+    assert.equal(
+      versionedResponse.headers.get("cache-control"),
+      socialImageCacheControl,
+    );
+    assert.equal(
+      stableResponse.headers.get("cache-control"),
+      socialImageCacheControl,
+    );
+    assert.equal(
+      versionedResponse.headers.get("access-control-allow-origin"),
+      "*",
+    );
+    assert.equal(
+      stableResponse.headers.get("access-control-allow-origin"),
+      "*",
+    );
+
+    const [versionedImage, stableImage, robots] = await Promise.all([
+      versionedResponse.arrayBuffer().then(Buffer.from),
+      stableResponse.arrayBuffer().then(Buffer.from),
+      robotsResponse.text(),
+    ]);
+
+    assert.deepEqual(versionedImage, approvedImage);
+    assert.deepEqual(stableImage, approvedImage);
+    assert.match(robots, /User-Agent: \*/i);
+    assert.match(robots, /Allow: \//i);
+    assert.equal(siteConfig.siteUrl, "https://menimals.online");
+  },
+);
 
 test("home reveals the App Store scribble after the physical panda settles", async () => {
   const component = await readFile(
