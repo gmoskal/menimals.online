@@ -91,6 +91,24 @@ function firstFallDuration(trajectory, kind) {
   );
 }
 
+test("social sharing uses a large Menimals card with the stacked mascots", async () => {
+  const [layout, socialCard] = await Promise.all([
+    readFile(new URL("app/layout.tsx", projectRoot), "utf8"),
+    readFile(new URL("app/social-card/route.tsx", projectRoot), "utf8"),
+  ]);
+
+  await access(new URL("app/fonts/InterBold.ttf", projectRoot));
+
+  assert.match(layout, /summary_large_image/);
+  assert.match(layout, /siteSocialImage/);
+  assert.match(layout, /siteSocialTwitterImage/);
+  assert.match(socialCard, /\/panda\.png/);
+  assert.match(socialCard, /\/pingwin\.png/);
+  assert.match(socialCard, /\/kiwi\.png/);
+  assert.match(socialCard, /rotate\(180deg\)/);
+  assert.match(socialCard, /toLowerCase\(\)/);
+});
+
 test("home reveals the App Store scribble after the physical panda settles", async () => {
   const component = await readFile(
     new URL("app/_components/site-page.tsx", projectRoot),

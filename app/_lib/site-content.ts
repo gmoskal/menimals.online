@@ -14,6 +14,35 @@ export const siteConfig = {
   operator: "Async.Studio",
 } as const;
 
+export const siteSocialImageVersion = "20260804-01";
+
+export function absoluteSiteUrl(pathname = "/") {
+  return new URL(pathname, siteConfig.siteUrl).toString();
+}
+
+export const siteHomeUrl = absoluteSiteUrl("/");
+export const siteSocialContent = {
+  title: siteConfig.name.toLowerCase(),
+  description: siteConfig.description,
+  imageAlt: "Menimals panda, upside-down penguin, and kiwi plush toys.",
+} as const;
+
+const siteSocialImagePath = `/social-card?v=${siteSocialImageVersion}`;
+
+export const siteSocialImage = {
+  url: siteSocialImagePath,
+  secureUrl: absoluteSiteUrl(siteSocialImagePath),
+  width: 1_200,
+  height: 630,
+  type: "image/png",
+  alt: siteSocialContent.imageAlt,
+} as const;
+
+export const siteSocialTwitterImage = {
+  url: siteSocialImagePath,
+  alt: siteSocialContent.imageAlt,
+} as const;
+
 const sharedLabels = {
   light: "Light",
   dark: "Dark",
