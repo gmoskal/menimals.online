@@ -91,22 +91,22 @@ function firstFallDuration(trajectory, kind) {
   );
 }
 
-test("social sharing uses a large Menimals card with the stacked mascots", async () => {
-  const [layout, socialCard] = await Promise.all([
+test("social sharing uses a static versioned JPEG like 28gor", async () => {
+  const [layout, siteContent, socialImage] = await Promise.all([
     readFile(new URL("app/layout.tsx", projectRoot), "utf8"),
-    readFile(new URL("app/social-card/route.tsx", projectRoot), "utf8"),
+    readFile(new URL("app/_lib/site-content.ts", projectRoot), "utf8"),
+    readFile(
+      new URL("public/og-image-20260804-02.jpeg", projectRoot),
+    ),
   ]);
-
-  await access(new URL("app/fonts/InterBold.ttf", projectRoot));
 
   assert.match(layout, /summary_large_image/);
   assert.match(layout, /siteSocialImage/);
   assert.match(layout, /siteSocialTwitterImage/);
-  assert.match(socialCard, /\/panda\.png/);
-  assert.match(socialCard, /\/pingwin\.png/);
-  assert.match(socialCard, /\/kiwi\.png/);
-  assert.match(socialCard, /rotate\(180deg\)/);
-  assert.match(socialCard, /toLowerCase\(\)/);
+  assert.match(siteContent, /siteSocialImageVersion = "20260804-02"/);
+  assert.match(siteContent, /`\/og-image-\$\{siteSocialImageVersion\}\.jpeg`/);
+  assert.match(siteContent, /type: "image\/jpeg"/);
+  assert.deepEqual([...socialImage.subarray(0, 3)], [0xff, 0xd8, 0xff]);
 });
 
 test("home reveals the App Store scribble after the physical panda settles", async () => {

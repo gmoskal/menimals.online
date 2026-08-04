@@ -14,7 +14,7 @@ export const siteConfig = {
   operator: "Async.Studio",
 } as const;
 
-export const siteSocialImageVersion = "20260804-01";
+export const siteSocialImageVersion = "20260804-02";
 
 export function absoluteSiteUrl(pathname = "/") {
   return new URL(pathname, siteConfig.siteUrl).toString();
@@ -27,14 +27,14 @@ export const siteSocialContent = {
   imageAlt: "Menimals panda, upside-down penguin, and kiwi plush toys.",
 } as const;
 
-const siteSocialImagePath = `/social-card?v=${siteSocialImageVersion}`;
+const siteSocialImagePath = `/og-image-${siteSocialImageVersion}.jpeg`;
 
 export const siteSocialImage = {
   url: siteSocialImagePath,
   secureUrl: absoluteSiteUrl(siteSocialImagePath),
   width: 1_200,
   height: 630,
-  type: "image/png",
+  type: "image/jpeg",
   alt: siteSocialContent.imageAlt,
 } as const;
 
