@@ -247,8 +247,8 @@ Route (app)
 
 ### Weryfikacja produkcji i dostarczenie
 
-- Commit `5cfbf77db1408545b56f01a77c7ea4c20fb05288` jest HEAD-em `main` lokalnie i
-  na `origin/main`; wskazuje go tag `fix/003-brak-podgladu-linku-meta`.
+- Commit `5cfbf77db1408545b56f01a77c7ea4c20fb05288` jest przodkiem lokalnego
+  `main` i `origin/main`; wskazuje go tag `fix/003-brak-podgladu-linku-meta`.
 - Vercel deployment `dpl_7Cqb2XRVN6MXhnqz7cipsjmHJ2Bi` osiągnął
   `readyState=READY`, `target=production` i został przypisany do
   `https://menimals.online`.
