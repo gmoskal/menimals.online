@@ -328,7 +328,7 @@ test("branding, App Store destination, and supported locales match the app", asy
   const { appNames, localeCodes, localeDisplayNames, siteConfig, siteContent } =
     await import("../app/_lib/site-content.ts");
 
-  assert.equal(siteConfig.name, "Merge Plushies");
+  assert.equal(siteConfig.name, "Menimals");
   assert.equal(
     siteConfig.appStoreUrl,
     "https://apps.apple.com/us/app/menimals/id6797433697",
@@ -345,15 +345,15 @@ test("branding, App Store destination, and supported locales match the app", asy
     "he",
   ]);
   assert.deepEqual(appNames, {
-    en: "Merge Plushies",
-    ja: "ぬいぐるみマージ",
-    ko: "봉제인형 머지",
-    pl: "Łącz Pluszaki",
-    fr: "Fusion de Peluches",
-    es: "Fusión de Peluches",
-    de: "Plüsch-Merge",
-    sv: "Gosedjurs-Merge",
-    he: "Merge Plushies",
+    en: "Menimals",
+    ja: "Menimals",
+    ko: "Menimals",
+    pl: "Menimals",
+    fr: "Menimals",
+    es: "Menimals",
+    de: "Menimals",
+    sv: "Menimals",
+    he: "Menimals",
   });
   assert.deepEqual(Object.keys(localeDisplayNames), [...localeCodes]);
   assert.deepEqual(Object.keys(siteContent), [...localeCodes]);

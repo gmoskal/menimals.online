@@ -12,15 +12,15 @@ export const localeCodes = [
 export type Locale = (typeof localeCodes)[number];
 
 export const appNames = {
-  en: "Merge Plushies",
-  ja: "ぬいぐるみマージ",
-  ko: "봉제인형 머지",
-  pl: "Łącz Pluszaki",
-  fr: "Fusion de Peluches",
-  es: "Fusión de Peluches",
-  de: "Plüsch-Merge",
-  sv: "Gosedjurs-Merge",
-  he: "Merge Plushies",
+  en: "Menimals",
+  ja: "Menimals",
+  ko: "Menimals",
+  pl: "Menimals",
+  fr: "Menimals",
+  es: "Menimals",
+  de: "Menimals",
+  sv: "Menimals",
+  he: "Menimals",
 } as const satisfies Record<Locale, string>;
 
 export const localeDisplayNames = {
@@ -111,7 +111,7 @@ export const siteContent = {
     back: "Back to the panda",
     privacy: {
       title: "Privacy policy",
-      updated: "Last updated: 21 August 2026, 23:53 CEST (UTC+02:00; Europe/Warsaw).",
+      updated: "Last updated: 22 August 2026, 01:20 CEST (UTC+02:00; Europe/Warsaw).",
       intro: `This policy explains privacy in ${appNames.en} and on menimals.online.`,
       sections: [
         { title: "Controller and contact", paragraphs: [`${appNames.en} is operated by ${siteConfig.operator}. For privacy questions, email ${siteConfig.contactEmail}.`] },
@@ -134,7 +134,7 @@ export const siteContent = {
     back: "パンダに戻る",
     privacy: {
       title: "プライバシーポリシー",
-      updated: "最終更新：2026年8月21日 23:53 CEST（UTC+02:00、Europe/Warsaw）。",
+      updated: "最終更新：2026年8月22日 01:20 CEST（UTC+02:00、Europe/Warsaw）。",
       intro: `本ポリシーは、${appNames.ja}およびmenimals.onlineにおけるプライバシーについて説明します。`,
       sections: [
         { title: "管理者とお問い合わせ", paragraphs: [`${appNames.ja}は${siteConfig.operator}が運営しています。プライバシーに関するお問い合わせは${siteConfig.contactEmail}までご連絡ください。`] },
@@ -157,7 +157,7 @@ export const siteContent = {
     back: "판다로 돌아가기",
     privacy: {
       title: "개인정보 처리방침",
-      updated: "최종 업데이트: 2026년 8월 21일 23:53 CEST (UTC+02:00; Europe/Warsaw).",
+      updated: "최종 업데이트: 2026년 8월 22일 01:20 CEST (UTC+02:00; Europe/Warsaw).",
       intro: `이 방침은 ${appNames.ko} 및 menimals.online의 개인정보 보호 방식을 설명합니다.`,
       sections: [
         { title: "운영자 및 문의", paragraphs: [`${appNames.ko}은(는) ${siteConfig.operator}에서 운영합니다. 개인정보 관련 문의는 ${siteConfig.contactEmail}로 보내 주세요.`] },
@@ -180,7 +180,7 @@ export const siteContent = {
     back: "Wróć do pandy",
     privacy: {
       title: "Polityka prywatności",
-      updated: "Ostatnia aktualizacja: 21 sierpnia 2026, 23:53 CEST (UTC+02:00; Europe/Warsaw).",
+      updated: "Ostatnia aktualizacja: 22 sierpnia 2026, 01:20 CEST (UTC+02:00; Europe/Warsaw).",
       intro: `Ta polityka opisuje prywatność w grze ${appNames.pl} oraz na stronie menimals.online.`,
       sections: [
         { title: "Administrator i kontakt", paragraphs: [`Operatorem ${appNames.pl} jest ${siteConfig.operator}. W sprawach prywatności napisz na ${siteConfig.contactEmail}.`] },
@@ -203,7 +203,7 @@ export const siteContent = {
     back: "Retour au panda",
     privacy: {
       title: "Politique de confidentialité",
-      updated: "Dernière mise à jour : 21 août 2026 à 23:53 CEST (UTC+02:00 ; Europe/Warsaw).",
+      updated: "Dernière mise à jour : 22 août 2026 à 01:20 CEST (UTC+02:00 ; Europe/Warsaw).",
       intro: `Cette politique explique la confidentialité dans ${appNames.fr} et sur menimals.online.`,
       sections: [
         { title: "Responsable et contact", paragraphs: [`${appNames.fr} est exploité par ${siteConfig.operator}. Pour toute question relative à la confidentialité, écrivez à ${siteConfig.contactEmail}.`] },
@@ -226,7 +226,7 @@ export const siteContent = {
     back: "Volver al panda",
     privacy: {
       title: "Política de privacidad",
-      updated: "Última actualización: 21 de agosto de 2026, 23:53 CEST (UTC+02:00; Europe/Warsaw).",
+      updated: "Última actualización: 22 de agosto de 2026, 01:20 CEST (UTC+02:00; Europe/Warsaw).",
       intro: `Esta política explica la privacidad en ${appNames.es} y en menimals.online.`,
       sections: [
         { title: "Responsable y contacto", paragraphs: [`${appNames.es} está operado por ${siteConfig.operator}. Para consultas sobre privacidad, escribe a ${siteConfig.contactEmail}.`] },
@@ -249,7 +249,7 @@ export const siteContent = {
     back: "Zurück zum Panda",
     privacy: {
       title: "Datenschutzerklärung",
-      updated: "Zuletzt aktualisiert: 21. August 2026, 23:53 CEST (UTC+02:00; Europe/Warsaw).",
+      updated: "Zuletzt aktualisiert: 22. August 2026, 01:20 CEST (UTC+02:00; Europe/Warsaw).",
       intro: `Diese Erklärung beschreibt den Datenschutz in ${appNames.de} und auf menimals.online.`,
       sections: [
         { title: "Verantwortlicher und Kontakt", paragraphs: [`${appNames.de} wird von ${siteConfig.operator} betrieben. Datenschutzfragen können an ${siteConfig.contactEmail} gesendet werden.`] },
@@ -272,7 +272,7 @@ export const siteContent = {
     back: "Tillbaka till pandan",
     privacy: {
       title: "Integritetspolicy",
-      updated: "Senast uppdaterad: 21 augusti 2026, 23:53 CEST (UTC+02:00; Europe/Warsaw).",
+      updated: "Senast uppdaterad: 22 augusti 2026, 01:20 CEST (UTC+02:00; Europe/Warsaw).",
       intro: `Denna policy beskriver integriteten i ${appNames.sv} och på menimals.online.`,
       sections: [
         { title: "Personuppgiftsansvarig och kontakt", paragraphs: [`${appNames.sv} drivs av ${siteConfig.operator}. Frågor om integritet kan skickas till ${siteConfig.contactEmail}.`] },
@@ -295,7 +295,7 @@ export const siteContent = {
     back: "חזרה לפנדה",
     privacy: {
       title: "מדיניות פרטיות",
-      updated: "עדכון אחרון: 21 באוגוסט 2026, 23:53 CEST (UTC+02:00; Europe/Warsaw).",
+      updated: "עדכון אחרון: 22 באוגוסט 2026, 01:20 CEST (UTC+02:00; Europe/Warsaw).",
       intro: `מדיניות זו מסבירה את נוהלי הפרטיות ב-${appNames.he} ובאתר menimals.online.`,
       sections: [
         { title: "הגורם האחראי ויצירת קשר", paragraphs: [`${appNames.he} מופעלת על ידי ${siteConfig.operator}. לשאלות בנושא פרטיות ניתן לפנות אל ${siteConfig.contactEmail}.`] },

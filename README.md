@@ -1,6 +1,6 @@
-# Merge Plushies — menimals.online
+# Menimals — menimals.online
 
-Minimalna strona gry Merge Plushies: Menimal-panda, poprawny link do App Store,
+Minimalna strona gry Menimals: Menimal-panda, poprawny link do App Store,
 przełącznik motywu, wybór języka oraz polityka prywatności po angielsku,
 japońsku, koreańsku, polsku, francusku, hiszpańsku, niemiecku, szwedzku i
 hebrajsku.
