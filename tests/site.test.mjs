@@ -319,8 +319,73 @@ test("home reveals the App Store scribble after the physical panda settles", asy
   assert.match(component, /width: 470/);
   assert.doesNotMatch(component, /className="brand-mark"/);
   assert.match(component, /className="privacy-shortcut"/);
-  assert.doesNotMatch(component, /languageLabel|selectLocale/);
+  assert.match(component, /selectLocale/);
+  assert.match(component, /className="language-select"/);
   assert.doesNotMatch(component, /<footer/);
+});
+
+test("branding, App Store destination, and supported locales match the app", async () => {
+  const { appNames, localeCodes, localeDisplayNames, siteConfig, siteContent } =
+    await import("../app/_lib/site-content.ts");
+
+  assert.equal(siteConfig.name, "Merge Plushies");
+  assert.equal(
+    siteConfig.appStoreUrl,
+    "https://apps.apple.com/us/app/menimals/id6797433697",
+  );
+  assert.deepEqual(localeCodes, [
+    "en",
+    "ja",
+    "ko",
+    "pl",
+    "fr",
+    "es",
+    "de",
+    "sv",
+    "he",
+  ]);
+  assert.deepEqual(appNames, {
+    en: "Merge Plushies",
+    ja: "ぬいぐるみマージ",
+    ko: "봉제인형 머지",
+    pl: "Łącz Pluszaki",
+    fr: "Fusion de Peluches",
+    es: "Fusión de Peluches",
+    de: "Plüsch-Merge",
+    sv: "Gosedjurs-Merge",
+    he: "Merge Plushies",
+  });
+  assert.deepEqual(Object.keys(localeDisplayNames), [...localeCodes]);
+  assert.deepEqual(Object.keys(siteContent), [...localeCodes]);
+});
+
+test("home shows the localized app name around thirty percent from the top", async () => {
+  const [component, styles] = await Promise.all([
+    readFile(new URL("app/_components/site-page.tsx", projectRoot), "utf8"),
+    readFile(new URL("app/globals.css", projectRoot), "utf8"),
+  ]);
+
+  assert.match(component, /className="localized-app-title"/);
+  assert.match(component, /appNames\[activePreferences\.locale\]/);
+  assert.match(
+    component,
+    /aria-label=\{appNames\[activePreferences\.locale\]\}/,
+  );
+  assert.match(styles, /\.localized-app-title\s*\{[^}]*top: 30svh;/s);
+  assert.match(styles, /\.localized-app-title\s*\{[^}]*text-align: center;/s);
+});
+
+test("language preference follows the browser, persists, and supports Hebrew RTL", async () => {
+  const component = await readFile(
+    new URL("app/_components/site-page.tsx", projectRoot),
+    "utf8",
+  );
+
+  assert.match(component, /locale: "menimals\.locale"/);
+  assert.match(component, /navigator\.languages/);
+  assert.match(component, /fallbackLocale = "en"/);
+  assert.match(component, /localStorage\.setItem\(storageKeys\.locale/);
+  assert.match(component, /preferences\.locale === "he" \? "rtl" : "ltr"/);
 });
 
 test("panda ports the game's rigid-body drop with three times its game mass", () => {
@@ -854,17 +919,29 @@ test("physics board is an absolute 100vw by 100vh world at the origin", async ()
   assert.doesNotMatch(component, /floorRef|panda-floor/);
 });
 
-test("privacy policy is complete in Polish and English", async () => {
-  const content = await readFile(
-    new URL("app/_lib/site-content.ts", projectRoot),
-    "utf8",
+test("privacy policy is complete in every supported locale", async () => {
+  const { localeCodes, siteConfig, siteContent } = await import(
+    "../app/_lib/site-content.ts"
   );
 
-  assert.match(content, /Polityka prywatności/);
-  assert.match(content, /Privacy policy/);
-  assert.match(content, /Menimals nie zakłada kont/);
-  assert.match(content, /Menimals does not create accounts/);
-  assert.match(content, /contact@menimals\.online/);
+  for (const locale of localeCodes) {
+    const content = siteContent[locale];
+    assert.ok(content.privacy.title.length > 0, `${locale} privacy title`);
+    assert.match(content.privacy.updated, /Europe\/Warsaw/);
+    assert.ok(content.privacy.intro.length > 0, `${locale} privacy intro`);
+    assert.equal(content.privacy.sections.length, 6, `${locale} sections`);
+    assert.ok(
+      content.privacy.sections.every(
+        (section) =>
+          section.title.length > 0 &&
+          section.paragraphs.length > 0 &&
+          section.paragraphs.every((paragraph) => paragraph.length > 0),
+      ),
+      `${locale} complete sections`,
+    );
+  }
+
+  assert.equal(siteConfig.contactEmail, "contact@menimals.online");
 });
 
 test("panda asset is present", async () => {

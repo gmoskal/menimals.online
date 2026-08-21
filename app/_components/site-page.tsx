@@ -6,19 +6,23 @@ import { PhysicsPanda } from "./physics-panda";
 import { ScribbleAppStoreCta } from "./scribble-app-store-cta";
 import type { PandaDropPose } from "../_lib/panda-drop-physics";
 import {
-  Locale,
+  appNames,
+  localeCodes,
+  localeDisplayNames,
   siteConfig,
   siteContent,
-  Theme,
   themeCodes,
 } from "../_lib/site-content";
+import type { Locale, Theme } from "../_lib/site-content";
 
 const storageKeys = {
+  locale: "menimals.locale",
   theme: "menimals.theme",
 } as const;
 
+const fallbackLocale = "en" satisfies Locale;
 const defaultPreferences = {
-  locale: "pl",
+  locale: fallbackLocale,
   theme: "light",
 } as const satisfies Preferences;
 
@@ -59,6 +63,10 @@ function isTheme(value: string | null): value is Theme {
   return themeCodes.some((theme) => theme === value);
 }
 
+function isLocale(value: string | null): value is Locale {
+  return localeCodes.some((locale) => locale === value);
+}
+
 function storedValue(key: (typeof storageKeys)[keyof typeof storageKeys]) {
   try {
     return window.localStorage.getItem(key);
@@ -68,10 +76,16 @@ function storedValue(key: (typeof storageKeys)[keyof typeof storageKeys]) {
 }
 
 function readPreferences(): Preferences {
+  const storedLocale = storedValue(storageKeys.locale);
   const browserTheme = storedValue(storageKeys.theme);
-  const locale: Locale = navigator.language.toLowerCase().startsWith("pl")
-    ? "pl"
-    : "en";
+  const browserLocales = navigator.languages.length
+    ? navigator.languages
+    : [navigator.language];
+  const locale = isLocale(storedLocale)
+    ? storedLocale
+    : browserLocales
+        .map((language) => language.toLowerCase().split(/[-_]/)[0])
+        .find(isLocale) ?? fallbackLocale;
   const theme = isTheme(browserTheme)
     ? browserTheme
     : window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -95,9 +109,11 @@ export function SitePage(p: SitePageProps) {
     }
 
     document.documentElement.lang = preferences.locale;
+    document.documentElement.dir = preferences.locale === "he" ? "rtl" : "ltr";
     document.documentElement.dataset.theme = preferences.theme;
     document.documentElement.style.colorScheme = preferences.theme;
     try {
+      window.localStorage.setItem(storageKeys.locale, preferences.locale);
       window.localStorage.setItem(storageKeys.theme, preferences.theme);
     } catch {
       // Preferences remain active for this visit if browser storage is unavailable.
@@ -106,11 +122,28 @@ export function SitePage(p: SitePageProps) {
 
   const selectTheme = (theme: Theme) =>
     setPreferences({ ...activePreferences, theme });
+  const selectLocale = (locale: Locale) =>
+    setPreferences({ ...activePreferences, locale });
 
   return (
     <div className={p.page === "home" ? "site site--home" : "site site--privacy"}>
       <header className="controls">
         <div className="control-stack">
+          <label className="language-control">
+            <span className="visually-hidden">{content.languageLabel}</span>
+            <select
+              aria-label={content.languageLabel}
+              className="language-select"
+              onChange={(event) => selectLocale(event.target.value as Locale)}
+              value={activePreferences.locale}
+            >
+              {localeCodes.map((locale) => (
+                <option key={locale} value={locale}>
+                  {localeDisplayNames[locale]}
+                </option>
+              ))}
+            </select>
+          </label>
           <div className="segmented" aria-label={content.themeLabel}>
             {themeCodes.map((theme) => (
               <button
@@ -134,7 +167,13 @@ export function SitePage(p: SitePageProps) {
       </header>
 
       {p.page === "home" ? (
-        <main className="panda-stage" aria-label={siteConfig.name}>
+        <main
+          className="panda-stage"
+          aria-label={appNames[activePreferences.locale]}
+        >
+          <h1 className="localized-app-title">
+            {appNames[activePreferences.locale]}
+          </h1>
           <PhysicsPanda
             alt={content.pandaAlt}
             isActive={preferences !== null}
@@ -176,7 +215,7 @@ export function SitePage(p: SitePageProps) {
           <article className="privacy-document">
             <Link className="back-link" href="/">
               <span aria-hidden="true">← </span>
-              {siteConfig.name}
+              {appNames[activePreferences.locale]}
             </Link>
             <h1>{content.privacy.title}</h1>
             <p className="updated">{content.privacy.updated}</p>

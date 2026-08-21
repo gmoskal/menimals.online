@@ -8,7 +8,7 @@ import {
 } from "../_lib/site-content";
 
 const privacyTitle = "Privacy policy";
-const privacyDescription = "Privacy policy for the Menimals game and website.";
+const privacyDescription = `Privacy policy for ${siteConfig.name} and menimals.online.`;
 const privacyUrl = absoluteSiteUrl("/privacy");
 
 export const metadata: Metadata = {
@@ -22,7 +22,16 @@ export const metadata: Metadata = {
     description: privacyDescription,
     siteName: siteConfig.name,
     locale: "en_US",
-    alternateLocale: ["pl_PL"],
+    alternateLocale: [
+      "ja_JP",
+      "ko_KR",
+      "pl_PL",
+      "fr_FR",
+      "es_ES",
+      "de_DE",
+      "sv_SE",
+      "he_IL",
+    ],
     images: [siteSocialImage],
   },
   twitter: {

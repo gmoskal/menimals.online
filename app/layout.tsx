@@ -32,7 +32,16 @@ export const metadata: Metadata = {
     description: siteSocialContent.description,
     siteName: siteConfig.name,
     locale: "en_US",
-    alternateLocale: ["pl_PL"],
+    alternateLocale: [
+      "ja_JP",
+      "ko_KR",
+      "pl_PL",
+      "fr_FR",
+      "es_ES",
+      "de_DE",
+      "sv_SE",
+      "he_IL",
+    ],
     images: [siteSocialImage],
   },
   twitter: {
@@ -57,7 +66,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pl" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body>{children}</body>
     </html>
   );
