@@ -3,7 +3,30 @@
   "branch": "main",
   "pushed": true,
   "production": "https://menimals.online",
-  "status": "blocked by expired Vercel token; browser sign-in waiting for owner passkey",
+  "status": "publication still pending: Vercel CLI device authorization button remains disabled; existing GitHub integration does not include the website repository; waiting for user approval to add only gmoskal/menimals.online",
   "liveHalloweenAssetStatus": 404,
-  "noAutomaticGithubDeploymentObserved": true
+  "noAutomaticGithubDeploymentObserved": true,
+  "lastAttemptUTC": "2026-10-11T21:48:31.381743+00:00",
+  "productionBeforeAttempt": {
+    "deployment": "3HVjF6GSsdMPs7Penn8vyx7KTGVZ",
+    "commit": "f34e551576ac0bde6519abf0b06a595ddd146ccd"
+  },
+  "githubAccessDraft": {
+    "saved": false,
+    "repositoriesBefore": [
+      "gmoskal/kszw.pl",
+      "gmoskal/28summits.com",
+      "gmoskal/daymaker.fun"
+    ],
+    "repositoryToAdd": "gmoskal/menimals.online",
+    "installationID": 11300083
+  },
+  "cleanupThisAttempt": {
+    "ownedBuildsCreated": 0,
+    "removedFiles": 0,
+    "removedBytes": 0,
+    "pendingCLILoginStopped": true,
+    "retainedScreenshot": "bugs/assets/2026-10-11-halloween-publish/github-access.png",
+    "preexistingNextRetained": "not task-owned"
+  }
 }
