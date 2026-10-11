@@ -4,7 +4,6 @@ import { animated, to, useSpring } from "@react-spring/web";
 import Image from "next/image";
 import { useReducedMotion } from "motion/react";
 import {
-  useEffect,
   useLayoutEffect,
   useRef,
   type KeyboardEvent,
@@ -45,7 +44,6 @@ const companionNames = {
 type PhysicsPandaProps = {
   readonly alt: string;
   readonly isActive: boolean;
-  readonly onSettledChange: (pose: PandaDropPose | null) => void;
 };
 
 type PointerSample = {
@@ -168,7 +166,6 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
   const runtimeRef = useRef<MenimalRuntime>(null);
   const interactionRef = useRef<PlushInteraction>({ type: "playing" });
   const interactionRevisionRef = useRef(0);
-  const settledChangeRef = useRef(p.onSettledChange);
   const reduceMotion = Boolean(useReducedMotion());
   const [spring, springApi] = useSpring(() => ({
     interactionRevision: 0,
@@ -230,7 +227,6 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
     springApi.stop();
     event.currentTarget.setPointerCapture(event.pointerId);
     event.currentTarget.dataset.dragging = "true";
-    settledChangeRef.current(null);
     const sample = pointerSample(event);
     interactionRef.current = {
       currentPose: { ...pose, isSettled: false },
@@ -340,10 +336,6 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
     tabIndex: 0,
   });
 
-  useEffect(() => {
-    settledChangeRef.current = p.onSettledChange;
-  }, [p.onSettledChange]);
-
   useLayoutEffect(() => {
     if (!p.isActive) {
       return;
@@ -367,14 +359,13 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
       };
     };
 
-    const settle = (trajectory: MenimalDropTrajectory) => {
+    const settle = () => {
       for (const kind of menimalKinds) {
         const element = menimalRefs.current[kind];
         if (element) {
           element.dataset.settled = "true";
         }
       }
-      settledChangeRef.current(trajectory.finalPoses.panda);
     };
 
     const runTrajectory = (toss?: MenimalToss) => {
@@ -411,13 +402,12 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
           element.dataset.settled = "false";
         }
       }
-      settledChangeRef.current(null);
       springApi.set({ playhead: 0 });
       refreshInteraction();
 
       if (reduceMotion) {
         springApi.set({ playhead: trajectory.durationMilliseconds });
-        settle(trajectory);
+        settle();
         return;
       }
 
@@ -429,7 +419,7 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
         },
         onRest: (result) => {
           if (result.finished && trajectoryRef.current === trajectory) {
-            settle(trajectory);
+            settle();
           }
         },
       });
@@ -468,7 +458,7 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
       <AnimatedImage
         {...imageInteractionProps("panda")}
         style={{ transform: pandaTransform }}
-        src="/panda.png"
+        src="/halloween-panda.png"
         width={1024}
         height={1024}
         sizes="(max-aspect-ratio: 1/1) 58vw, 46vh"
@@ -481,7 +471,7 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
           transform: kiwiTransform,
           width: `calc(var(--panda-size) * ${menimalDropConfig.kiwi.sizeRatio})`,
         }}
-        src="/kiwi.png"
+        src="/halloween-kiwi.png"
         width={1024}
         height={1024}
         sizes="(max-aspect-ratio: 1/1) 44vw, 35vh"
@@ -494,7 +484,7 @@ export function PhysicsPanda(p: PhysicsPandaProps) {
           transform: penguinTransform,
           width: `calc(var(--panda-size) * ${menimalDropConfig.penguin.sizeRatio})`,
         }}
-        src="/pingwin.png"
+        src="/halloween-pingwin.png"
         width={1024}
         height={1024}
         sizes="(max-aspect-ratio: 1/1) 48vw, 38vh"

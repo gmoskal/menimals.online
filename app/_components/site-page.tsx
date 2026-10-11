@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useState, type CSSProperties } from "react";
 import { PhysicsPanda } from "./physics-panda";
 import { ScribbleAppStoreCta } from "./scribble-app-store-cta";
-import type { PandaDropPose } from "../_lib/panda-drop-physics";
 import {
   appNames,
   localeCodes,
@@ -38,7 +37,6 @@ const storyAppStoreBaseScale = 0.6;
 const storyAppStoreScaleMultiplier = 1.5;
 const storyAppStoreScale =
   storyAppStoreBaseScale * storyAppStoreScaleMultiplier;
-const storyAppStoreGap = 100;
 const storyAppStoreScaledHeight =
   storyAppStoreScribble.height * storyAppStoreScale;
 const storyAppStoreScaledFrameStyle = {
@@ -97,7 +95,6 @@ function readPreferences(): Preferences {
 
 export function SitePage(p: SitePageProps) {
   const [preferences, setPreferences] = useState<Preferences | null>(null);
-  const [settledPanda, setSettledPanda] = useState<PandaDropPose | null>(null);
   const activePreferences = preferences ?? defaultPreferences;
   const content = siteContent[activePreferences.locale];
 
@@ -177,18 +174,11 @@ export function SitePage(p: SitePageProps) {
           <PhysicsPanda
             alt={content.pandaAlt}
             isActive={preferences !== null}
-            onSettledChange={setSettledPanda}
           />
-          {settledPanda ? (
             <div
               className="app-store-cta-frame"
               style={{
                 ...storyAppStoreScaledFrameStyle,
-                left: settledPanda.centerX,
-                top:
-                  settledPanda.topY -
-                  storyAppStoreGap -
-                  storyAppStoreScaledHeight,
               }}
             >
               <div
@@ -208,7 +198,6 @@ export function SitePage(p: SitePageProps) {
                 />
               </div>
             </div>
-          ) : null}
         </main>
       ) : (
         <main className="privacy-shell">

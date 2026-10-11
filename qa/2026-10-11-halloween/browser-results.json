@@ -1,0 +1,56 @@
+{
+  "localURL": "http://127.0.0.1:8781",
+  "build": "Next production",
+  "checks": {
+    "mobile390x844": {
+      "sampleMilliseconds": [
+        0,
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "ctaVisibleEverySample": true,
+      "pandaSettledEverySample": false,
+      "allHalloweenImagesLoaded": true,
+      "ctaFrame": {
+        "x": 42.9,
+        "y": 291.1875,
+        "width": 304.2,
+        "height": 81
+      }
+    },
+    "keyboardToss": {
+      "ctaRemainsVisible": true,
+      "ctaFrameUnchanged": true,
+      "pandaSettled": false
+    },
+    "desktopDark1440x1000": {
+      "ctaFrame": {
+        "x": 508.5,
+        "y": 370,
+        "width": 423,
+        "height": 112.5
+      },
+      "horizontalOverflow": false
+    }
+  },
+  "tests": {
+    "typecheck": "PASS",
+    "nodeTests": {
+      "passed": 27,
+      "failed": 0
+    },
+    "build": "PASS"
+  },
+  "artworkSHA256": {
+    "public/halloween-pingwin.png": "d1768aefdc05deae7d8f6a1c08a722e73c71fc8367ffc907e4091a35406a3da4",
+    "public/halloween-panda.png": "e8fdf16f4639eb12c953381eb02ae75e722f0c758fa731b3236c5b0e8a09dc9b",
+    "public/halloween-kiwi.png": "9217e4981fe2b48b5f3f3060bf7bd54821bcb68546e1132f1d1946097127b089"
+  }
+}

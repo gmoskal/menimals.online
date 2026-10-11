@@ -300,7 +300,7 @@ test(
   },
 );
 
-test("home reveals the App Store scribble after the physical panda settles", async () => {
+test("home reveals the App Store scribble immediately, independently of toy physics", async () => {
   const component = await readFile(
     new URL("app/_components/site-page.tsx", projectRoot),
     "utf8",
@@ -308,9 +308,7 @@ test("home reveals the App Store scribble after the physical panda settles", asy
 
   assert.match(component, /className="panda-stage"/);
   assert.match(component, /<PhysicsPanda/);
-  assert.match(component, /settledPanda \?/);
-  assert.match(component, /settledPanda\.centerX/);
-  assert.match(component, /settledPanda\.topY/);
+  assert.doesNotMatch(component, /settledPanda|onSettledChange/);
   assert.match(component, /<ScribbleAppStoreCta/);
   assert.match(component, /height: 125/);
   assert.match(component, /markerStrokeWidth: 71/);
@@ -889,9 +887,9 @@ test("all three plush toys expose the same pointer and keyboard toss interaction
     "utf8",
   );
 
-  assert.match(component, /src="\/panda\.png"/);
-  assert.match(component, /src="\/kiwi\.png"/);
-  assert.match(component, /src="\/pingwin\.png"/);
+  assert.match(component, /src="\/halloween-panda\.png"/);
+  assert.match(component, /src="\/halloween-kiwi\.png"/);
+  assert.match(component, /src="\/halloween-pingwin\.png"/);
   assert.match(component, /onPointerDown/);
   assert.match(component, /onKeyDown/);
 });

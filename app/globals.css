@@ -284,6 +284,8 @@ a {
 
 .app-store-cta-frame {
   position: absolute;
+  left: 50%;
+  top: calc(30svh + clamp(38px, 5vw, 70px));
   z-index: 2;
   overflow: visible;
   animation: app-store-cta-reveal 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
