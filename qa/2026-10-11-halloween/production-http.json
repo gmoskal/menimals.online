@@ -1,0 +1,40 @@
+{
+  "utc": "2026-10-11T21:55:42.165378+00:00",
+  "unauthenticatedPublicHTTPS": true,
+  "checks": [
+    {
+      "path": "/",
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "bytes": 18521,
+      "sha256": "85324cf98c9545a3e2726bbb3c18e4e55a8140af6454a195ee57abf563b5270f",
+      "containsHalloweenImages": true,
+      "containsDownloadLink": true
+    },
+    {
+      "path": "/halloween-panda.png",
+      "status": 200,
+      "type": "image/png",
+      "bytes": 2068634,
+      "sha256": "e8fdf16f4639eb12c953381eb02ae75e722f0c758fa731b3236c5b0e8a09dc9b",
+      "matchesSource": true
+    },
+    {
+      "path": "/halloween-kiwi.png",
+      "status": 200,
+      "type": "image/png",
+      "bytes": 2776767,
+      "sha256": "9217e4981fe2b48b5f3f3060bf7bd54821bcb68546e1132f1d1946097127b089",
+      "matchesSource": true
+    },
+    {
+      "path": "/halloween-pingwin.png",
+      "status": 200,
+      "type": "image/png",
+      "bytes": 1982602,
+      "sha256": "d1768aefdc05deae7d8f6a1c08a722e73c71fc8367ffc907e4091a35406a3da4",
+      "matchesSource": true
+    }
+  ],
+  "htmlImageURLDecoding": "Next.js image query URLs use percent encoding"
+}

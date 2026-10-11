@@ -1,0 +1,32 @@
+{
+  "ctaRect": {
+    "height": 80.43988037109375,
+    "width": 302.096435546875,
+    "x": 43.95179748535156,
+    "y": 294.68829345703125
+  },
+  "ctaVisible": true,
+  "height": 844,
+  "images": [
+    {
+      "alt": "Menimal panda",
+      "loaded": true,
+      "settled": false,
+      "src": "https://menimals.online/_next/image?url=%2Fhalloween-panda.png&w=384&q=75"
+    },
+    {
+      "alt": "Kiwi",
+      "loaded": true,
+      "settled": false,
+      "src": "https://menimals.online/_next/image?url=%2Fhalloween-kiwi.png&w=384&q=75"
+    },
+    {
+      "alt": "Penguin",
+      "loaded": true,
+      "settled": false,
+      "src": "https://menimals.online/_next/image?url=%2Fhalloween-pingwin.png&w=384&q=75"
+    }
+  ],
+  "overflow": false,
+  "width": 390
+}

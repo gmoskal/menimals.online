@@ -3,8 +3,8 @@
   "branch": "main",
   "pushed": true,
   "production": "https://menimals.online",
-  "status": "publication still pending: Vercel CLI device authorization button remains disabled; existing GitHub integration does not include the website repository; waiting for user approval to add only gmoskal/menimals.online",
-  "liveHalloweenAssetStatus": 404,
+  "status": "published and verified on public production domain",
+  "liveHalloweenAssetStatus": 200,
   "noAutomaticGithubDeploymentObserved": true,
   "lastAttemptUTC": "2026-10-11T21:48:31.381743+00:00",
   "productionBeforeAttempt": {
@@ -19,14 +19,33 @@
       "gmoskal/daymaker.fun"
     ],
     "repositoryToAdd": "gmoskal/menimals.online",
-    "installationID": 11300083
+    "installationID": 11300083,
+    "cancelled": true
   },
   "cleanupThisAttempt": {
+    "removedFiles": 1,
+    "removedBytes": 32151,
     "ownedBuildsCreated": 0,
-    "removedFiles": 0,
-    "removedBytes": 0,
-    "pendingCLILoginStopped": true,
-    "retainedScreenshot": "bugs/assets/2026-10-11-halloween-publish/github-access.png",
-    "preexistingNextRetained": "not task-owned"
+    "remoteBuild": "Vercel managed build; no local output",
+    "preexistingNextRetained": "not task-owned",
+    "retainedProof": "bugs/assets/2026-10-11-halloween-publish/production.png",
+    "proofRetentionDays": 5
+  },
+  "publishedUTC": "2026-10-11T21:57:25.089142+00:00",
+  "deployedCommit": "f9d4c0d",
+  "artworkAndCTACommit": "ff66573f09cd53b49e51502c4aaaa50e725b522d",
+  "deploymentID": "dpl_H45fJYXpnAzJPTsoTSVaFdmXxcVo",
+  "deploymentURL": "https://menimals-online-hgc0ysdh8-gmoskals-projects-1e7a5b2a.vercel.app",
+  "readyState": "READY",
+  "target": "production",
+  "unauthenticatedPublicHTTPS": true,
+  "authentication": "existing CLI login refreshed through normal Vercel browser device flow",
+  "githubPermissionsChanged": false,
+  "verification": {
+    "remoteProductionBuild": "PASS, including TypeScript",
+    "publicHTTPS": "PASS for home and three source-identical Halloween PNGs",
+    "mobile390x844": "CTA visible while all three characters airborne, images loaded, no horizontal overflow",
+    "proof": "ignored native production screenshot, default browser size",
+    "initialHTTPMatcher": "corrected to decode percent-encoded Next image URLs; final check PASS"
   }
 }
