@@ -5,3 +5,5 @@ Przycisk App Store jest montowany wraz ze stroną i uruchamia istniejącą anima
 Weryfikacja: typecheck,27 testów Node, produkcyjny build Next PASS. Rzeczywista przeglądarka: mobile390×844, desktop dark1440×1000, CTA widoczne przez pierwsze900ms, gdy panda nadal spada, oraz podczas ponownego podrzutu klawiaturą. Brak poziomego overflow. Dane w browser-results.json. Obejrzane zrzuty w ignored media; to kontrola wyglądu, bez twierdzenia o pomiarze FPS.
 
 Jedyny własny output: .build/task-web-menimals; nie usuwać zastanego .next. Publikacja i cleanup mają osobne receipts.
+
+Zmiany ff66573 na main wysłane na GitHub. Produkcja jeszcze niepotwierdzona: token Vercel jest nieważny, logowanie w Brave czeka na passkey właściciela. Nie deklarować strony jako opublikowanej. Własny serwer zatrzymany, output/logi/duplikaty usunięte; cleanup.json. Pozostały jeden lekki ignored podgląd mobile do przeglądu gotowego wyglądu (5dni).

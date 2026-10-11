@@ -1,0 +1,27 @@
+{
+  "removedDirectory": "/Users/gmm/prv/menimals.online/.build/task-web-menimals",
+  "files": 135,
+  "bytes": 98387065,
+  "serverSession": 73726,
+  "serverStopped": true,
+  "lsofOpenFiles": "",
+  "preexistingNextRetained": "not task-owned",
+  "extrasRemoved": [
+    {
+      "path": "qa/2026-10-11-halloween/build.log",
+      "bytes": 1090
+    },
+    {
+      "path": "qa/2026-10-11-halloween/server.log",
+      "bytes": 194
+    },
+    {
+      "path": "qa/2026-10-11-halloween/media/desktop-dark.png",
+      "bytes": 409114
+    },
+    {
+      "path": "qa/2026-10-11-halloween/media/mobile-toss.png",
+      "bytes": 220932
+    }
+  ]
+}

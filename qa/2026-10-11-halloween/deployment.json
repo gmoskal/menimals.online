@@ -1,0 +1,9 @@
+{
+  "commit": "ff66573f09cd53b49e51502c4aaaa50e725b522d",
+  "branch": "main",
+  "pushed": true,
+  "production": "https://menimals.online",
+  "status": "blocked by expired Vercel token; browser sign-in waiting for owner passkey",
+  "liveHalloweenAssetStatus": 404,
+  "noAutomaticGithubDeploymentObserved": true
+}
