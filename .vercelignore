@@ -1,0 +1,9 @@
+.git/
+.next/
+.vercel/
+node_modules/
+.build/
+qa/
+bugs/
+*.tsbuildinfo
+.DS_Store
